@@ -11,6 +11,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using Caliburn.Micro;
+using chocolatey;
 using ChocolateyGui.Common.Base;
 using ChocolateyGui.Common.Models;
 using ChocolateyGui.Common.Models.Messages;
@@ -20,7 +21,7 @@ using ChocolateyGui.Common.ViewModels.Items;
 using ChocolateyGui.Common.Windows.Services;
 using ChocolateyGui.Common.Windows.Views;
 using MahApps.Metro.Controls.Dialogs;
-using NuGet;
+using NuGet.Versioning;
 using Action = System.Action;
 using MemoryCache = System.Runtime.Caching.MemoryCache;
 
@@ -30,8 +31,13 @@ namespace ChocolateyGui.Common.Windows.ViewModels.Items
     public class PackageViewModel :
         ObservableBase,
         IPackageViewModel,
-        IHandle<PackageHasUpdateMessage>,
-        IHandle<FeatureModifiedMessage>
+        IHandle<PackageOutdatedMessage>,
+        IHandle<FeatureModifiedMessage>,
+        IHandle<PackageUpgradedMessage>,
+        IHandle<PackageUninstalledMessage>,
+        IHandle<PackageInstalledMessage>,
+        IHandle<PackagePinnedMessage>,
+        IHandle<PackageUnpinnedMessage>
     {
         private static readonly Serilog.ILogger Logger = Serilog.Log.ForContext<PackageViewModel>();
 
@@ -60,7 +66,7 @@ namespace ChocolateyGui.Common.Windows.ViewModels.Items
 
         private string _description;
 
-        private int _downloadCount;
+        private long _downloadCount;
 
         private string _galleryDetailsUrl;
 
@@ -68,15 +74,11 @@ namespace ChocolateyGui.Common.Windows.ViewModels.Items
 
         private string _id;
 
-        private bool _isAbsoluteLatestVersion;
+        private bool _isOutdated;
 
         private bool _isInstalled;
 
         private bool _isPinned;
-
-        private bool _isSideBySide;
-
-        private bool _isLatestVersion;
 
         private bool _isPrerelease;
 
@@ -84,7 +86,9 @@ namespace ChocolateyGui.Common.Windows.ViewModels.Items
 
         private DateTime _lastUpdated;
 
-        private SemanticVersion _latestVersion;
+        private NuGetVersion _latestVersion;
+
+        private NuGetVersion _remoteVersion;
 
         private string _licenseUrl = string.Empty;
 
@@ -108,15 +112,17 @@ namespace ChocolateyGui.Common.Windows.ViewModels.Items
 
         private Uri _source;
 
+        private Models.ChocolateySource _chocolateySource;
+
         private string _summary;
 
         private string _tags;
 
         private string _title;
 
-        private SemanticVersion _version;
+        private NuGetVersion _version;
 
-        private int _versionDownloadCount;
+        private long _versionDownloadCount;
 
         public PackageViewModel(
             IChocolateyService chocolateyService,
@@ -165,15 +171,15 @@ namespace ChocolateyGui.Common.Windows.ViewModels.Items
 
         public bool IsInstallAllowed => _allowedCommandsService.IsInstallCommandAllowed;
 
-        public bool CanReinstall => IsInstalled;
+        public bool CanReinstall => IsInstalled && !IsPinned;
 
         public bool IsReinstallAllowed => _allowedCommandsService.IsInstallCommandAllowed;
 
-        public bool CanUninstall => IsInstalled;
+        public bool CanUninstall => IsInstalled && !IsPinned;
 
         public bool IsUninstallAllowed => _allowedCommandsService.IsUninstallCommandAllowed;
 
-        public bool CanUpdate => IsInstalled && !IsPinned && !IsSideBySide && !IsLatestVersion;
+        public bool CanUpdate => IsInstalled && !IsPinned && IsOutdated;
 
         public bool IsUpgradeAllowed => _allowedCommandsService.IsUpgradeCommandAllowed;
 
@@ -203,7 +209,7 @@ namespace ChocolateyGui.Common.Windows.ViewModels.Items
             set { SetPropertyValue(ref _description, value); }
         }
 
-        public int DownloadCount
+        public long DownloadCount
         {
             get { return _downloadCount; }
             set { SetPropertyValue(ref _downloadCount, value); }
@@ -230,12 +236,6 @@ namespace ChocolateyGui.Common.Windows.ViewModels.Items
         public string LowerCaseId
         {
             get { return Id.ToLowerInvariant(); }
-        }
-
-        public bool IsAbsoluteLatestVersion
-        {
-            get { return _isAbsoluteLatestVersion; }
-            set { SetPropertyValue(ref _isAbsoluteLatestVersion, value); }
         }
 
         public bool IsInstalled
@@ -270,32 +270,16 @@ namespace ChocolateyGui.Common.Windows.ViewModels.Items
             }
         }
 
-        public bool IsSideBySide
+        public bool IsOutdated
         {
             get
             {
-                return _isSideBySide;
+                return _isOutdated;
             }
 
             set
             {
-                if (SetPropertyValue(ref _isSideBySide, value))
-                {
-                    NotifyPropertyChanged(nameof(CanUpdate));
-                }
-            }
-        }
-
-        public bool IsLatestVersion
-        {
-            get
-            {
-                return _isLatestVersion;
-            }
-
-            set
-            {
-                if (SetPropertyValue(ref _isLatestVersion, value))
+                if (SetPropertyValue(ref _isOutdated, value))
                 {
                     NotifyPropertyChanged(nameof(CanUpdate));
                 }
@@ -314,10 +298,16 @@ namespace ChocolateyGui.Common.Windows.ViewModels.Items
             set { SetPropertyValue(ref _language, value); }
         }
 
-        public SemanticVersion LatestVersion
+        public NuGetVersion LatestVersion
         {
             get { return _latestVersion; }
             set { SetPropertyValue(ref _latestVersion, value); }
+        }
+
+        public NuGetVersion RemoteVersion
+        {
+            get { return _remoteVersion; }
+            set { SetPropertyValue(ref _remoteVersion, value); }
         }
 
         public string LicenseUrl
@@ -386,6 +376,12 @@ namespace ChocolateyGui.Common.Windows.ViewModels.Items
             set { SetPropertyValue(ref _source, value); }
         }
 
+        public Models.ChocolateySource ChocolateySource
+        {
+            get { return _chocolateySource; }
+            set { SetPropertyValue(ref _chocolateySource, value); }
+        }
+
         public string Summary
         {
             get { return _summary; }
@@ -404,13 +400,13 @@ namespace ChocolateyGui.Common.Windows.ViewModels.Items
             set { SetPropertyValue(ref _title, value); }
         }
 
-        public SemanticVersion Version
+        public NuGetVersion Version
         {
             get { return _version; }
             set { SetPropertyValue(ref _version, value); }
         }
 
-        public int VersionDownloadCount
+        public long VersionDownloadCount
         {
             get { return _versionDownloadCount; }
             set { SetPropertyValue(ref _versionDownloadCount, value); }
@@ -431,7 +427,8 @@ namespace ChocolateyGui.Common.Windows.ViewModels.Items
 
         public async Task ShowArguments()
         {
-            var decryptedArguments = _packageArgumentsService.DecryptPackageArgumentsFile(Id, Version.ToString()).ToList();
+            // TODO: Add legacy handling for packages installed prior to v2.0.0.
+            var decryptedArguments = _packageArgumentsService.DecryptPackageArgumentsFile(Id, Version.ToNormalizedStringChecked()).ToList();
 
             if (decryptedArguments.Count == 0)
             {
@@ -449,7 +446,7 @@ namespace ChocolateyGui.Common.Windows.ViewModels.Items
 
         public async Task Install()
         {
-            await InstallPackage(Version.ToString());
+            await InstallPackage(Version.ToNormalizedStringChecked());
         }
 
         public async Task InstallAdvanced()
@@ -475,21 +472,48 @@ namespace ChocolateyGui.Common.Windows.ViewModels.Items
             }
         }
 
+        public async Task OpenGallery()
+        {
+            if (string.IsNullOrWhiteSpace(GalleryDetailsUrl))
+            {
+                return;
+            }
+
+            try
+            {
+                Process.Start(new ProcessStartInfo(GalleryDetailsUrl));
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Ran into an error while opening the gallery page for {Id}, version {Version}.", Id, Version);
+                await _dialogService.ShowMessageAsync(
+                    L(nameof(Resources.PackageViewModel_FailedToOpenGallery)),
+                    L(nameof(Resources.PackageViewModel_RanIntoOpenGalleryError), Id, Version, ex.Message));
+            }
+        }
+
         public async Task Reinstall()
         {
             try
             {
-                var confirmationResult = await _dialogService.ShowConfirmationMessageAsync(
-                    L(nameof(Resources.Dialog_AreYouSureTitle)),
-                    L(nameof(Resources.Dialog_AreYouSureReinstallMessage), Id));
+                var confirmationResult = MessageDialogResult.Affirmative;
+                if (!_configService.GetEffectiveConfiguration().SkipModalDialogConfirmation.GetValueOrDefault(false))
+                {
+                    confirmationResult = await _dialogService.ShowConfirmationMessageAsync(
+                        L(nameof(Resources.Dialog_AreYouSureTitle)),
+                        L(nameof(Resources.Dialog_AreYouSureReinstallMessage), Id));
+                }
 
                 if (confirmationResult == MessageDialogResult.Affirmative)
                 {
                     using (await StartProgressDialog(L(nameof(Resources.PackageViewModel_ReinstallingPackage)), L(nameof(Resources.PackageViewModel_ReinstallingPackage)), Id))
                     {
-                        await _chocolateyService.InstallPackage(Id, Version.ToString(), Source, true);
-                        _chocolateyGuiCacheService.PurgeOutdatedPackages();
-                        await _eventAggregator.PublishOnUIThreadAsync(new PackageChangedMessage(Id, PackageChangeType.Installed, Version));
+                        await _chocolateyService.InstallPackage(Id, Version.ToNormalizedStringChecked(), Source, true);
+
+                        // We need to clear out all files, as there may be incorrect information cached for 
+                        // all the sources.
+                        _chocolateyGuiCacheService.PurgeOutdatedPackages(source: null, includePrerelease: false);
+                        await _eventAggregator.PublishOnUIThreadAsync(new PackageInstalledMessage(Id, Version, ChocolateySource));
                     }
                 }
             }
@@ -506,15 +530,19 @@ namespace ChocolateyGui.Common.Windows.ViewModels.Items
         {
             try
             {
-                var confirmationResult = await _dialogService.ShowConfirmationMessageAsync(
+                var confirmationResult = MessageDialogResult.Affirmative;
+                if (!_configService.GetEffectiveConfiguration().SkipModalDialogConfirmation.GetValueOrDefault(false))
+                {
+                    confirmationResult = await _dialogService.ShowConfirmationMessageAsync(
                     L(nameof(Resources.Dialog_AreYouSureTitle)),
                     L(nameof(Resources.Dialog_AreYouSureUninstallMessage), Id));
+                }
 
                 if (confirmationResult == MessageDialogResult.Affirmative)
                 {
                     using (await StartProgressDialog(L(nameof(Resources.PackageViewModel_UninstallingPackage)), L(nameof(Resources.PackageViewModel_UninstallingPackage)), Id))
                     {
-                        var result = await _chocolateyService.UninstallPackage(Id, Version.ToString(), true);
+                        var result = await _chocolateyService.UninstallPackage(Id, Version.ToNormalizedStringChecked(), true);
 
                         if (!result.Successful)
                         {
@@ -539,7 +567,7 @@ namespace ChocolateyGui.Common.Windows.ViewModels.Items
                         }
 
                         IsInstalled = false;
-                        _eventAggregator.BeginPublishOnUIThread(new PackageChangedMessage(Id, PackageChangeType.Uninstalled, Version));
+                        await _eventAggregator.PublishOnUIThreadAsync(new PackageUninstalledMessage(Id, Version, ChocolateySource));
                     }
                 }
             }
@@ -559,7 +587,7 @@ namespace ChocolateyGui.Common.Windows.ViewModels.Items
             {
                 using (await StartProgressDialog(L(nameof(Resources.PackageViewModel_UpdatingPackage)), L(nameof(Resources.PackageViewModel_UpdatingPackage)), Id))
                 {
-                    var result = await _chocolateyService.UpdatePackage(Id, Source);
+                    var result = await _chocolateyService.UpdatePackage(Id, LatestVersion.ToNormalizedStringChecked(), Source);
 
                     if (!result.Successful)
                     {
@@ -582,8 +610,13 @@ namespace ChocolateyGui.Common.Windows.ViewModels.Items
                         return;
                     }
 
-                    _chocolateyGuiCacheService.PurgeOutdatedPackages();
-                    _eventAggregator.BeginPublishOnUIThread(new PackageChangedMessage(Id, PackageChangeType.Updated));
+                    IsOutdated = false;
+                    Version = LatestVersion;
+
+                    // We need to clear out all files, as there may be incorrect information cached for 
+                    // all the sources.
+                    _chocolateyGuiCacheService.PurgeOutdatedPackages(source: null, includePrerelease: false);
+                    await _eventAggregator.PublishOnUIThreadAsync(new PackageUpgradedMessage(Id, Version, source: ChocolateySource));
                 }
             }
             catch (Exception ex)
@@ -602,7 +635,7 @@ namespace ChocolateyGui.Common.Windows.ViewModels.Items
             {
                 using (await StartProgressDialog(L(nameof(Resources.PackageViewModel_PinningPackage)), L(nameof(Resources.PackageViewModel_PinningPackage)), Id))
                 {
-                    var result = await _chocolateyService.PinPackage(Id, Version.ToString());
+                    var result = await _chocolateyService.PinPackage(Id, Version.ToNormalizedStringChecked());
 
                     if (!result.Successful)
                     {
@@ -627,7 +660,7 @@ namespace ChocolateyGui.Common.Windows.ViewModels.Items
                     }
 
                     IsPinned = true;
-                    _eventAggregator.BeginPublishOnUIThread(new PackageChangedMessage(Id, PackageChangeType.Pinned, Version));
+                    await _eventAggregator.PublishOnUIThreadAsync(new PackagePinnedMessage(Id, Version, source: ChocolateySource));
                 }
             }
             catch (Exception ex)
@@ -646,7 +679,7 @@ namespace ChocolateyGui.Common.Windows.ViewModels.Items
             {
                 using (await StartProgressDialog(L(nameof(Resources.PackageViewModel_UnpinningPackage)), L(nameof(Resources.PackageViewModel_UnpinningPackage)), Id))
                 {
-                    var result = await _chocolateyService.UnpinPackage(Id, Version.ToString());
+                    var result = await _chocolateyService.UnpinPackage(Id, Version.ToNormalizedStringChecked());
 
                     if (!result.Successful)
                     {
@@ -671,7 +704,7 @@ namespace ChocolateyGui.Common.Windows.ViewModels.Items
                     }
 
                     IsPinned = false;
-                    _eventAggregator.BeginPublishOnUIThread(new PackageChangedMessage(Id, PackageChangeType.Unpinned, Version));
+                    await _eventAggregator.PublishOnUIThreadAsync(new PackageUnpinnedMessage(Id, Version, source: ChocolateySource));
                 }
             }
             catch (Exception ex)
@@ -697,15 +730,124 @@ namespace ChocolateyGui.Common.Windows.ViewModels.Items
             NotifyPropertyChanged(nameof(IsDownloadCountAvailable));
         }
 
-        public void Handle(PackageHasUpdateMessage message)
+        public void Handle(PackageOutdatedMessage message)
         {
             if (!string.Equals(message.Id, Id, StringComparison.OrdinalIgnoreCase))
             {
                 return;
             }
 
-            LatestVersion = message.Version;
-            IsLatestVersion = false;
+            if (LatestVersion == message.Version)
+            {
+                return;
+            }
+
+            if ((ChocolateySource == null && message.Source == null) || (ChocolateySource == message.Source))
+            {
+                RemoteVersion = message.Version;
+
+                if (IsInstalled)
+                {
+                    LatestVersion = message.Version;
+                    IsOutdated = true;
+                }
+                else if (Version == message.Version)
+                {
+                    // When all versions are shown, every version of a package is a separate row that shares
+                    // the package Id, and the outdated broadcast can only be matched by Id. Match on the
+                    // version as well so the update is applied only to the row it actually concerns - matching
+                    // on Id alone overwrites every sibling row's version with the latest and collapses them
+                    // all into a single version (#1146).
+                    LatestVersion = null;
+                    Version = message.Version;
+                }
+            }
+
+            return;            
+        }
+
+        public void Handle(PackageUpgradedMessage message)
+        {
+            if (!string.Equals(message.Id, Id, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            if (IsInstalled)
+            {
+                LatestVersion = RemoteVersion;
+                Version = message.Version;
+
+                if (LatestVersion <= Version)
+                {
+                    LatestVersion = null;
+                }
+
+                IsOutdated = LatestVersion > Version;
+            }
+        }
+
+        public void Handle(PackageUninstalledMessage message)
+        {
+            // If this is the local source, we don't need to do anything, since the package
+            // will be removed from the list of packages completely.
+            if (ChocolateySource == null)
+            {
+                return;
+            }
+
+            if (!string.Equals(message.Id, Id, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            if (LatestVersion != null)
+            {
+                Version = RemoteVersion;
+                LatestVersion = null;
+            }
+
+            IsInstalled = false;
+        }
+
+        public void Handle(PackageInstalledMessage message)
+        {
+            if (!string.Equals(message.Id, Id, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            LatestVersion = RemoteVersion;
+            Version = message.Version;
+
+            if (LatestVersion == Version)
+            {
+                LatestVersion = null;
+            }
+
+            IsInstalled = true;
+
+            IsOutdated = LatestVersion > Version;
+        }
+
+        public void Handle(PackagePinnedMessage message)
+        {
+            if (!string.Equals(message.Id, Id, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            IsPinned = true;
+        }
+
+        public void Handle(PackageUnpinnedMessage message)
+        {
+            if (!string.Equals(message.Id, Id, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            IsPinned = false;
         }
 
         private async Task InstallPackage(string version, AdvancedInstall advancedOptions = null)
@@ -745,8 +887,10 @@ namespace ChocolateyGui.Common.Windows.ViewModels.Items
 
                     IsInstalled = true;
 
-                    _chocolateyGuiCacheService.PurgeOutdatedPackages();
-                    _eventAggregator.BeginPublishOnUIThread(new PackageChangedMessage(Id, PackageChangeType.Installed, Version));
+                    // We need to clear out all files, as there may be incorrect information cached for 
+                    // all the sources.
+                    _chocolateyGuiCacheService.PurgeOutdatedPackages(source: null, includePrerelease: false);
+                    await _eventAggregator.PublishOnUIThreadAsync(new PackageInstalledMessage(Id, Version, ChocolateySource));
                 }
             }
             catch (Exception ex)

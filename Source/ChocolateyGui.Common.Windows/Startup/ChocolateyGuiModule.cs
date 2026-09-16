@@ -13,13 +13,10 @@ using AutoMapper;
 using Caliburn.Micro;
 using chocolatey;
 using chocolatey.infrastructure.adapters;
-using chocolatey.infrastructure.app.configuration;
-using chocolatey.infrastructure.app.nuget;
 using chocolatey.infrastructure.app.services;
 using chocolatey.infrastructure.cryptography;
 using chocolatey.infrastructure.filesystem;
 using chocolatey.infrastructure.services;
-using ChocolateyGui.Common.Models;
 using ChocolateyGui.Common.Properties;
 using ChocolateyGui.Common.Providers;
 using ChocolateyGui.Common.Services;
@@ -29,9 +26,6 @@ using ChocolateyGui.Common.Windows.Services;
 using ChocolateyGui.Common.Windows.ViewModels;
 using ChocolateyGui.Common.Windows.Views;
 using LiteDB;
-using NuGet;
-using ChocolateySource = chocolatey.infrastructure.app.configuration.ChocolateySource;
-using Environment = System.Environment;
 using PackageViewModel = ChocolateyGui.Common.Windows.ViewModels.Items.PackageViewModel;
 
 namespace ChocolateyGui.Common.Windows.Startup
@@ -89,53 +83,7 @@ namespace ChocolateyGui.Common.Windows.Startup
             builder.RegisterType<AllowedCommandsService>().As<IAllowedCommandsService>().SingleInstance();
 
             // Register Mapper
-            var mapperConfiguration = new MapperConfiguration(config =>
-            {
-                config.CreateMap<IPackageViewModel, IPackageViewModel>()
-                    .ForMember(vm => vm.IsInstalled, options => options.Ignore());
-
-                config.CreateMap<DataServicePackage, Package>()
-                    .ForMember(dest => dest.Authors, opt => opt.MapFrom(src => src.Authors.Split(',')))
-                    .ForMember(dest => dest.Owners, opt => opt.MapFrom(src => src.Owners.Split(',')));
-                config.CreateMap<IPackage, Package>();
-
-                config.CreateMap<ConfigFileFeatureSetting, ChocolateyFeature>();
-                config.CreateMap<ConfigFileConfigSetting, ChocolateySetting>();
-                config.CreateMap<ConfigFileSourceSetting, Common.Models.ChocolateySource>()
-                    .ForMember(dest => dest.Password, opt => opt.MapFrom(src => NugetEncryptionUtility.DecryptString(src.Password)))
-                    .ForMember(dest => dest.CertificatePassword, opt => opt.MapFrom(src => NugetEncryptionUtility.DecryptString(src.CertificatePassword)));
-
-                config.CreateMap<ChocolateySource, Common.Models.ChocolateySource>()
-                    .ForMember(dest => dest.VisibleToAdminsOnly, opt => opt.MapFrom(src => src.VisibleToAdminOnly));
-
-                config.CreateMap<AdvancedInstallViewModel, AdvancedInstall>()
-                    .ForMember(
-                        dest => dest.DownloadChecksum,
-                        opt => opt.Condition(source => !source.IgnoreChecksums))
-                    .ForMember(
-                        dest => dest.DownloadChecksumType,
-                        opt => opt.Condition(source =>
-                            !source.IgnoreChecksums && !string.IsNullOrEmpty(source.DownloadChecksum)))
-                    .ForMember(
-                        dest => dest.DownloadChecksum64bit,
-                        opt => opt.Condition(source =>
-                            Environment.Is64BitOperatingSystem
-                            && !source.IgnoreChecksums
-                            && !source.Forcex86))
-                    .ForMember(
-                        dest => dest.DownloadChecksumType64bit,
-                        opt => opt.Condition(source =>
-                            Environment.Is64BitOperatingSystem
-                            && !source.IgnoreChecksums
-                            && !source.Forcex86
-                            && !string.IsNullOrEmpty(source.DownloadChecksum64bit)))
-                    .ForMember(
-                        dest => dest.PackageParameters,
-                        opt => opt.Condition(source => !source.SkipPowerShell))
-                    .ForMember(
-                        dest => dest.InstallArguments,
-                        opt => opt.Condition(source => !source.SkipPowerShell && !source.NotSilent));
-            });
+            var mapperConfiguration = ChocolateyGuiMapper.CreateConfiguration();
 
             builder.RegisterType<BundledThemeService>().As<IBundledThemeService>().SingleInstance();
             builder.RegisterInstance(mapperConfiguration.CreateMapper()).As<IMapper>();
@@ -147,13 +95,22 @@ namespace ChocolateyGui.Common.Windows.Startup
                 var userDatabase = new LiteDatabase($"filename={Path.Combine(Bootstrapper.LocalAppDataPath, "data.db")};upgrade=true");
 
                 LiteDatabase globalDatabase;
+                var globalConfigDirectory = Path.Combine(Bootstrapper.AppDataPath, "Config");
+                var globalConfigDatabaseFile = Path.Combine(globalConfigDirectory, "data.db");
+
                 if (Hacks.IsElevated)
                 {
-                    globalDatabase = new LiteDatabase($"filename={Path.Combine(Bootstrapper.AppDataPath, "Config", "data.db")};upgrade=true");
+                    if (!Directory.Exists(globalConfigDirectory))
+                    {
+                        Directory.CreateDirectory(globalConfigDirectory);
+                        Hacks.LockDirectory(globalConfigDirectory);
+                    }
+
+                    globalDatabase = new LiteDatabase($"filename={globalConfigDatabaseFile};upgrade=true");
                 }
                 else
                 {
-                    if (!File.Exists(Path.Combine(Bootstrapper.AppDataPath, "Config", "data.db")))
+                    if (!File.Exists(globalConfigDatabaseFile))
                     {
                         // Since the global configuration database file doesn't exist, we must be running in a state where an administrator user
                         // has never run Chocolatey GUI. In this case, use null, which will mean attempts to use the global database will be ignored.
@@ -162,7 +119,7 @@ namespace ChocolateyGui.Common.Windows.Startup
                     else
                     {
                         // Since this is a non-administrator user, they should only have read permissions to this database
-                        globalDatabase = new LiteDatabase($"filename={Path.Combine(Bootstrapper.AppDataPath, "Config", "data.db")};readonly=true");
+                        globalDatabase = new LiteDatabase($"filename={globalConfigDatabaseFile};readonly=true");
                     }
                 }
 

@@ -8,9 +8,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using chocolatey;
+using chocolatey.infrastructure.app;
 using chocolatey.infrastructure.app.configuration;
 using chocolatey.infrastructure.app.domain;
 using chocolatey.infrastructure.app.nuget;
@@ -21,8 +23,10 @@ using ChocolateyGui.Common.Models;
 using ChocolateyGui.Common.Properties;
 using ChocolateyGui.Common.Services;
 using ChocolateyGui.Common.Utilities;
+using ChocolateyGui.Common.Windows.Utilities;
 using Microsoft.VisualStudio.Threading;
-using NuGet;
+using NuGet.Protocol.Core.Types;
+using NuGet.Versioning;
 using ChocolateySource = ChocolateyGui.Common.Models.ChocolateySource;
 using IFileSystem = chocolatey.infrastructure.filesystem.IFileSystem;
 
@@ -30,6 +34,8 @@ namespace ChocolateyGui.Common.Windows.Services
 {
     using ChocolateySource = ChocolateySource;
     using ILogger = Serilog.ILogger;
+    using LogLevel = Models.LogLevel;
+    using LogMessage = Models.LogMessage;
 
     public class ChocolateyService : IChocolateyService
     {
@@ -43,8 +49,7 @@ namespace ChocolateyGui.Common.Windows.Services
         private readonly IConfigService _configService;
         private GetChocolatey _choco;
         private string _localAppDataPath = string.Empty;
-#pragma warning disable SA1401 // Fields must be private
-#pragma warning restore SA1401 // Fields must be private
+        private const string ErrorRegex = "^\\s*(ERROR|FATAL|WARN)";
 
         public ChocolateyService(IMapper mapper, IProgressService progressService, IChocolateyConfigSettingsService configSettingsService, IXmlService xmlService, IFileSystem fileSystem, IConfigService configService)
         {
@@ -56,7 +61,7 @@ namespace ChocolateyGui.Common.Windows.Services
             _configService = configService;
             _choco = Lets.GetChocolatey(initializeLogging: false).SetCustomLogging(new SerilogLogger(Logger, _progressService), logExistingMessages: false, addToExistingLoggers: true);
 
-            _localAppDataPath = _fileSystem.combine_paths(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData, Environment.SpecialFolderOption.DoNotVerify), "Chocolatey GUI");
+            _localAppDataPath = _fileSystem.CombinePaths(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData, Environment.SpecialFolderOption.DoNotVerify), "Chocolatey GUI");
         }
 
         public Task<bool> IsElevated()
@@ -66,98 +71,136 @@ namespace ChocolateyGui.Common.Windows.Services
 
         public async Task<IEnumerable<Package>> GetInstalledPackages()
         {
-            _choco.Set(
-                config =>
-                    {
-                        config.CommandName = CommandNameType.list.ToString();
-                        config.ListCommand.LocalOnly = true;
-                    });
-
-            var chocoConfig = _choco.GetConfiguration();
-
-            // Not entirely sure what is going on here.  When there are no sources defined, for example, when they
-            // are all disabled, the ListAsync command isn't returning any packages installed locally.  When in this
-            // situation, use the nugetService directly to get the list of installed packages.
-            if (chocoConfig.Sources != null)
+            using (await Lock.WriteLockAsync())
             {
-                var packages = await _choco.ListAsync<PackageResult>();
-                return packages
-                    .Select(package => GetMappedPackage(_choco, package, _mapper, true))
-                    .ToArray();
-            }
-            else
-            {
-                var nugetService = _choco.Container().GetInstance<INugetService>();
-                var packages = await Task.Run(() => nugetService.list_run(chocoConfig));
-                return packages
-                    .Select(package => GetMappedPackage(_choco, package, _mapper, true))
-                    .ToArray();
+                _choco.Set(
+                    config =>
+                        {
+                            config.CommandName = CommandNameType.List.ToString();
+                            config.ListCommand.LocalOnly = true;
+                        });
+
+                var chocoConfig = _choco.GetConfiguration();
+
+                // Not entirely sure what is going on here.  When there are no sources defined, for example, when they
+                // are all disabled, the ListAsync command isn't returning any packages installed locally.  When in this
+                // situation, use the nugetService directly to get the list of installed packages.
+                if (chocoConfig.Sources != null)
+                {
+                    var packages = await _choco.ListAsync<PackageResult>();
+                    return packages
+                        .Select(package => GetMappedPackage(_choco, package, _mapper, true))
+                        .ToArray();
+                }
+                else
+                {
+                    var nugetService = _choco.Container().GetInstance<INugetService>();
+                    var packages = await Task.Run(() => nugetService.List(chocoConfig));
+                    return packages
+                        .Select(package => GetMappedPackage(_choco, package, _mapper, true))
+                        .ToArray();
+                }
             }
         }
 
         public async Task<IReadOnlyList<OutdatedPackage>> GetOutdatedPackages(bool includePrerelease = false, string packageName = null, bool forceCheckForOutdatedPackages = false)
         {
-            var preventAutomatedOutdatedPackagesCheck = _configService.GetEffectiveConfiguration().PreventAutomatedOutdatedPackagesCheck ?? false;
+            return await GetOutdatedPackages(includePrerelease, forceCheckForOutdatedPackages, source: null);
+        }
 
-            if (preventAutomatedOutdatedPackagesCheck && !forceCheckForOutdatedPackages)
+        public async Task<IReadOnlyList<OutdatedPackage>> GetOutdatedPackages(bool includePrerelease = false, bool forceCheckForOutdatedPackages = false, ChocolateySource source = null)
+        {
+            using (await Lock.WriteLockAsync())
             {
-                return new List<OutdatedPackage>();
-            }
+                var preventAutomatedOutdatedPackagesCheck = _configService.GetEffectiveConfiguration().PreventAutomatedOutdatedPackagesCheck ?? false;
 
-            var outdatedPackagesFile = _fileSystem.combine_paths(_localAppDataPath, "outdatedPackages.xml");
-
-            var outdatedPackagesCacheDurationInMinutesSetting = _configService.GetEffectiveConfiguration().OutdatedPackagesCacheDurationInMinutes;
-            int outdatedPackagesCacheDurationInMinutes = 0;
-            if (!string.IsNullOrWhiteSpace(outdatedPackagesCacheDurationInMinutesSetting))
-            {
-                int.TryParse(outdatedPackagesCacheDurationInMinutesSetting, out outdatedPackagesCacheDurationInMinutes);
-            }
-
-            if (_fileSystem.file_exists(outdatedPackagesFile) && (DateTime.Now - _fileSystem.get_file_modified_date(outdatedPackagesFile)).TotalMinutes < outdatedPackagesCacheDurationInMinutes)
-            {
-                return _xmlService.deserialize<List<OutdatedPackage>>(outdatedPackagesFile);
-            }
-            else
-            {
-                var choco = Lets.GetChocolatey(initializeLogging: false);
-                choco.Set(
-                    config =>
-                    {
-                        config.CommandName = "outdated";
-                        config.PackageNames = packageName ?? chocolatey.infrastructure.app.ApplicationParameters.AllPackages;
-                        config.UpgradeCommand.NotifyOnlyAvailableUpgrades = true;
-                        config.RegularOutput = false;
-                        config.QuietOutput = true;
-                        config.Prerelease = false;
-                    });
-                var chocoConfig = choco.GetConfiguration();
-
-                // If there are no Sources configured, for example, if they are all disabled, then figuring out
-                // which packages are outdated can't be completed.
-                if (chocoConfig.Sources != null)
+                if (preventAutomatedOutdatedPackagesCheck && !forceCheckForOutdatedPackages)
                 {
+                    return new List<OutdatedPackage>();
+                }
+
+                var outdatedPackageFileName = "outdatedPackages";
+
+                if (source != null)
+                {
+                    outdatedPackageFileName = $"{outdatedPackageFileName}-{source.Id}";
+                }
+
+                if (includePrerelease)
+                {
+                    outdatedPackageFileName = $"{outdatedPackageFileName}-pre.xml";
+                }
+                else
+                {
+                    outdatedPackageFileName = $"{outdatedPackageFileName}.xml";
+                }
+
+                var outdatedPackagesFile = _fileSystem.CombinePaths(_localAppDataPath, outdatedPackageFileName);
+
+                var outdatedPackagesCacheDurationInMinutesSetting = _configService.GetEffectiveConfiguration().OutdatedPackagesCacheDurationInMinutes;
+                var outdatedPackagesCacheDurationInMinutes = 0;
+
+                if (!string.IsNullOrWhiteSpace(outdatedPackagesCacheDurationInMinutesSetting))
+                {
+                    int.TryParse(outdatedPackagesCacheDurationInMinutesSetting, out outdatedPackagesCacheDurationInMinutes);
+                }
+
+                if (_fileSystem.FileExists(outdatedPackagesFile) && (DateTime.Now - _fileSystem.GetFileModifiedDate(outdatedPackagesFile)).TotalMinutes < outdatedPackagesCacheDurationInMinutes)
+                {
+                    return _xmlService.Deserialize<List<OutdatedPackage>>(outdatedPackagesFile);
+                }
+                else
+                {
+                    var choco = Lets.GetChocolatey(initializeLogging: false);
+                    var configuration = choco.GetConfiguration();
+
+                    configuration.CommandName = "outdated";
+                    configuration.PackageNames = "all";
+                    configuration.UpgradeCommand.NotifyOnlyAvailableUpgrades = true;
+                    configuration.RegularOutput = false;
+                    configuration.QuietOutput = true;
+                    configuration.Prerelease = includePrerelease;
+                    configuration.Features.IgnoreUnfoundPackagesOnUpgradeOutdated = true;
+
+                    if (forceCheckForOutdatedPackages)
+                    {
+                        configuration.SetCacheExpirationInMinutes(0);
+                    }
+
+                    if (source != null && source.Id != "[SourcesView_AggregatedSourcesId]")
+                    {
+                        configuration.Sources = source.Value;
+                    }
+
                     var nugetService = choco.Container().GetInstance<INugetService>();
-                    var packages = await Task.Run(() => nugetService.upgrade_noop(chocoConfig, null));
-                    var results = packages
-                        .Where(p => !p.Value.Inconclusive)
-                        .Select(p => new OutdatedPackage
-                        { Id = p.Value.Package.Id, VersionString = p.Value.Package.Version.ToNormalizedString() })
-                        .ToArray();
+                    var packages = await Task.Run(() => nugetService.GetOutdated(configuration));
+
+                    var outdatedPackages = packages.Where(p => p.Value.Success && !p.Value.Inconclusive)
+                                                   .Select(p => new OutdatedPackage
+                                                   { Id = p.Value.Name, VersionString = p.Value.Version }
+                                                   )
+                                                   .ToArray();
 
                     try
                     {
-                        _xmlService.serialize(results, outdatedPackagesFile);
+                        // The XmlService won't create a new file, if the file already exists with the same hash,
+                        // i.e. the list of outdated packages hasn't changed. Currently, we check for new outdated
+                        // packages, when the serialized file has become old/stale, so we NEED the file to be re-written
+                        // when this check is done, so that it isn't always doing the check. Therefore, when we are
+                        // getting ready to serialize the list of outdated packages, if the file already exists, delete it.
+                        if (_fileSystem.FileExists(outdatedPackagesFile))
+                        {
+                            _fileSystem.DeleteFile(outdatedPackagesFile);
+                        }
+
+                        _xmlService.Serialize(outdatedPackages, outdatedPackagesFile);
                     }
                     catch (Exception ex)
                     {
                         Logger.Error(ex, L(nameof(Resources.Application_OutdatedPackagesError)));
                     }
 
-                    return results.ToList();
-                }
-                else
-                {
-                    return new List<OutdatedPackage>();
+                    return outdatedPackages;
                 }
             }
         }
@@ -176,13 +219,13 @@ namespace ChocolateyGui.Common.Windows.Services
                 choco.Set(
                     config =>
                         {
-                            config.CommandName = CommandNameType.install.ToString();
+                            config.CommandName = CommandNameType.Install.ToString();
                             config.PackageNames = id;
                             config.Features.UsePackageExitCodes = false;
 
                             if (version != null)
                             {
-                                config.Version = version.ToString();
+                                config.Version = version;
                             }
 
                             if (source != null)
@@ -213,7 +256,6 @@ namespace ChocolateyGui.Common.Windows.Services
                                 config.ApplyInstallArgumentsToDependencies = advancedInstallOptions.ApplyInstallArgumentsToDependencies;
                                 config.ApplyPackageParametersToDependencies = advancedInstallOptions.ApplyPackageParametersToDependencies;
                                 config.AllowDowngrade = advancedInstallOptions.AllowDowngrade;
-                                config.AllowMultipleVersions = advancedInstallOptions.AllowMultipleVersions;
                                 config.IgnoreDependencies = advancedInstallOptions.IgnoreDependencies;
                                 config.ForceDependencies = advancedInstallOptions.ForceDependencies;
                                 config.SkipPackageInstallProvider = advancedInstallOptions.SkipPowerShell;
@@ -236,6 +278,11 @@ namespace ChocolateyGui.Common.Windows.Services
                                 config.DownloadChecksum64 = advancedInstallOptions.DownloadChecksum64bit;
                                 config.DownloadChecksumType = advancedInstallOptions.DownloadChecksumType;
                                 config.DownloadChecksumType64 = advancedInstallOptions.DownloadChecksumType64bit;
+
+                                if (advancedInstallOptions.IgnoreHttpCache)
+                                {
+                                    config.SetCacheExpirationInMinutes(0);
+                                }
                             }
                         });
 
@@ -259,91 +306,102 @@ namespace ChocolateyGui.Common.Windows.Services
 
         public async Task<PackageResults> Search(string query, PackageSearchOptions options)
         {
-            _choco.Set(
-                config =>
-                    {
-                        config.CommandName = CommandNameType.list.ToString();
-                        config.Input = query;
-                        config.AllVersions = options.IncludeAllVersions;
-                        config.ListCommand.Page = options.CurrentPage;
-                        config.ListCommand.PageSize = options.PageSize;
-                        config.Prerelease = options.IncludePrerelease;
-                        config.ListCommand.LocalOnly = false;
-                        if (string.IsNullOrWhiteSpace(query) || !string.IsNullOrWhiteSpace(options.SortColumn))
+            using (await Lock.WriteLockAsync())
+            { 
+                _choco.Set(
+                    config =>
                         {
-                            config.ListCommand.OrderByPopularity = string.IsNullOrWhiteSpace(options.SortColumn)
-                                                                   || options.SortColumn == "DownloadCount";
-                        }
-                        config.ListCommand.Exact = options.MatchQuery;
-                        if (!string.IsNullOrWhiteSpace(options.Source))
-                        {
-                            config.Sources = options.Source;
-                        }
+                            config.CommandName = "search";
+                            config.Input = query;
+                            config.AllVersions = options.IncludeAllVersions;
+                            config.ListCommand.Page = options.CurrentPage;
+                            config.ListCommand.PageSize = options.PageSize;
+                            config.Prerelease = options.IncludePrerelease;
+                            config.ListCommand.LocalOnly = false;
+                            if (string.IsNullOrWhiteSpace(query) || !string.IsNullOrWhiteSpace(options.SortColumn))
+                            {
+                                config.ListCommand.OrderByPopularity = string.IsNullOrWhiteSpace(options.SortColumn)
+                                                                       || options.SortColumn == "DownloadCount";
+                            }
+                            config.ListCommand.Exact = options.MatchQuery;
+                            if (!string.IsNullOrWhiteSpace(options.Source))
+                            {
+                                config.Sources = options.Source;
+                            }
 #if !DEBUG
-                        config.Verbose = false;
+                            config.Verbose = false;
 #endif // DEBUG
-                    });
+                        });
 
-            var packages =
-                (await _choco.ListAsync<PackageResult>()).Select(
-                    pckge => GetMappedPackage(_choco, pckge, _mapper));
+                var packages =
+                    (await _choco.ListAsync<PackageResult>()).Select(
+                        pckge => GetMappedPackage(_choco, pckge, _mapper));
 
-            return new PackageResults
-            {
-                Packages = packages.ToArray(),
-                TotalCount = await Task.Run(() => _choco.ListCount())
-            };
+                return new PackageResults
+                {
+                    Packages = packages.ToArray(),
+                    TotalCount = await Task.Run(() => _choco.ListCount())
+                };
+            }
         }
 
         public async Task<Package> GetByVersionAndIdAsync(string id, string version, bool isPrerelease)
         {
-            _choco.Set(
-                config =>
-                {
-                    config.CommandName = "list";
-                    config.Input = id;
-                    config.ListCommand.Exact = true;
-                    config.Version = version;
-                    config.QuietOutput = true;
-                    config.RegularOutput = false;
-#if !DEBUG
-                    config.Verbose = false;
-#endif // DEBUG
-                });
-            var chocoConfig = _choco.GetConfiguration();
-
-            var nugetLogger = _choco.Container().GetInstance<NuGet.ILogger>();
-            var semvar = new SemanticVersion(version);
-            var nugetPackage = await Task.Run(() => (NugetList.GetPackages(chocoConfig, nugetLogger) as IQueryable<IPackage>).FirstOrDefault(p => p.Version == semvar));
-            if (nugetPackage == null)
+            using (await Lock.WriteLockAsync())
             {
-                throw new Exception("No Package Found");
-            }
+                _choco.Set(
+                    config =>
+                    {
+                        config.CommandName = "list";
+                        config.Input = id;
+                        config.ListCommand.Exact = true;
+                        config.Version = version;
+                        config.QuietOutput = true;
+                        config.RegularOutput = false;
+#if !DEBUG
+                        config.Verbose = false;
+#endif // DEBUG
+                    });
+                var chocoConfig = _choco.GetConfiguration();
 
-            return GetMappedPackage(_choco, new PackageResult(nugetPackage, null, chocoConfig.Sources), _mapper);
+                var nugetLogger = _choco.Container().GetInstance<NuGet.Common.ILogger>();
+                var origVer = chocoConfig.Version;
+                chocoConfig.Version = version;
+                var nugetPackage = await Task.Run(() => (NugetList.GetPackages(chocoConfig, nugetLogger, _fileSystem) as IQueryable<IPackageSearchMetadata>).FirstOrDefault());
+                chocoConfig.Version = origVer;
+                if (nugetPackage == null)
+                {
+                    throw new Exception("No Package Found");
+                }
+
+                return GetMappedPackage(_choco, new PackageResult(nugetPackage, null, chocoConfig.Sources), _mapper);
+            }
         }
 
-        public async Task<List<SemanticVersion>> GetAvailableVersionsForPackageIdAsync(string id, int page, int pageSize, bool includePreRelease)
+        public async Task<List<NuGetVersion>> GetAvailableVersionsForPackageIdAsync(string id, int page, int pageSize, bool includePreRelease)
         {
-            _choco.Set(
-                config =>
-                {
-                    config.CommandName = "list";
-                    config.Input = id;
-                    config.ListCommand.Exact = true;
-                    config.ListCommand.Page = page;
-                    config.ListCommand.PageSize = pageSize;
-                    config.Prerelease = includePreRelease;
-                    config.AllVersions = true;
-                    config.QuietOutput = true;
-                    config.RegularOutput = false;
+            using (await Lock.WriteLockAsync())
+            {
+                _choco.Set(
+                    config =>
+                    {
+                        config.CommandName = "list";
+                        config.Input = id;
+                        config.ListCommand.Exact = true;
+                        config.ListCommand.Page = page;
+                        config.ListCommand.PageSize = pageSize;
+                        config.Prerelease = includePreRelease;
+                        config.AllVersions = true;
+                        config.QuietOutput = true;
+                        config.RegularOutput = false;
 #if !DEBUG
-                                config.Verbose = false;
+                                    config.Verbose = false;
 #endif // DEBUG
-                });
-            var chocoConfig = _choco.GetConfiguration();
-            var packages = await _choco.ListAsync<PackageResult>();
-            return packages.Select(p => new SemanticVersion(p.Version)).OrderByDescending(p => p.Version).ToList();
+                    });
+                var chocoConfig = _choco.GetConfiguration();
+                var packages = await _choco.ListAsync<PackageResult>();
+                return packages.Select(p => NuGetVersion.Parse(p.Version)).OrderByDescending(p => p.Version).ToList();
+            }
         }
 
         public async Task<PackageOperationResult> UninstallPackage(string id, string version, bool force = false)
@@ -355,7 +413,7 @@ namespace ChocolateyGui.Common.Windows.Services
                 choco.Set(
                     config =>
                         {
-                            config.CommandName = CommandNameType.uninstall.ToString();
+                            config.CommandName = CommandNameType.Uninstall.ToString();
                             config.PackageNames = id;
                             config.Features.UsePackageExitCodes = false;
 
@@ -371,6 +429,11 @@ namespace ChocolateyGui.Common.Windows.Services
 
         public async Task<PackageOperationResult> UpdatePackage(string id, Uri source = null)
         {
+            return await UpdatePackage(id, version: null, source: source);
+        }
+
+        public async Task<PackageOperationResult> UpdatePackage(string id, string version = null, Uri source = null)
+        {
             using (await Lock.WriteLockAsync())
             {
                 var logger = new SerilogLogger(Logger, _progressService);
@@ -378,9 +441,14 @@ namespace ChocolateyGui.Common.Windows.Services
                 choco.Set(
                     config =>
                         {
-                            config.CommandName = CommandNameType.upgrade.ToString();
+                            config.CommandName = CommandNameType.Upgrade.ToString();
                             config.PackageNames = id;
                             config.Features.UsePackageExitCodes = false;
+
+                            if (version != null)
+                            {
+                                config.Version = version;
+                            }
                         });
 
                 return await RunCommand(choco, logger);
@@ -395,9 +463,10 @@ namespace ChocolateyGui.Common.Windows.Services
                     config =>
                         {
                             config.CommandName = "pin";
-                            config.PinCommand.Command = PinCommandType.add;
+                            config.PinCommand.Command = PinCommandType.Add;
                             config.PinCommand.Name = id;
                             config.Version = version;
+                            config.Sources = ApplicationParameters.PackagesLocation;
                         });
 
                 try
@@ -421,9 +490,10 @@ namespace ChocolateyGui.Common.Windows.Services
                     config =>
                         {
                             config.CommandName = "pin";
-                            config.PinCommand.Command = PinCommandType.remove;
+                            config.PinCommand.Command = PinCommandType.Remove;
                             config.PinCommand.Name = id;
                             config.Version = version;
+                            config.Sources = ApplicationParameters.PackagesLocation;
                         });
                 try
                 {
@@ -458,7 +528,7 @@ namespace ChocolateyGui.Common.Windows.Services
                     config =>
                     {
                         config.CommandName = "feature";
-                        config.FeatureCommand.Command = feature.Enabled ? chocolatey.infrastructure.app.domain.FeatureCommandType.enable : chocolatey.infrastructure.app.domain.FeatureCommandType.disable;
+                        config.FeatureCommand.Command = feature.Enabled ? chocolatey.infrastructure.app.domain.FeatureCommandType.Enable : chocolatey.infrastructure.app.domain.FeatureCommandType.Disable;
                         config.FeatureCommand.Name = feature.Name;
                     });
 
@@ -481,7 +551,7 @@ namespace ChocolateyGui.Common.Windows.Services
                     config =>
                         {
                             config.CommandName = "config";
-                            config.ConfigCommand.Command = chocolatey.infrastructure.app.domain.ConfigCommandType.set;
+                            config.ConfigCommand.Command = chocolatey.infrastructure.app.domain.ConfigCommandType.Set;
                             config.ConfigCommand.Name = setting.Key;
                             config.ConfigCommand.ConfigValue = setting.Value;
                         });
@@ -492,16 +562,19 @@ namespace ChocolateyGui.Common.Windows.Services
 
         public async Task<ChocolateySource[]> GetSources()
         {
-            // We only want to provide the sources returned by calling choco.exe, which will exclude those
-            // as required, based on configuration.  However, in order to be able to set all properties of the source
-            // we need to read all information from the config file, i.e. the username and password
-            var config = await GetConfigFile();
-            var allSources = config.Sources.Select(_mapper.Map<ChocolateySource>).ToArray();
+            using (await Lock.WriteLockAsync())
+            {
+                // We only want to provide the sources returned by calling choco.exe, which will exclude those
+                // as required, based on configuration.  However, in order to be able to set all properties of the source
+                // we need to read all information from the config file, i.e. the username and password
+                var config = await GetConfigFile();
+                var allSources = config.Sources.Select(_mapper.Map<ChocolateySource>).ToArray();
 
-            var filteredSourceIds = _configSettingsService.source_list(_choco.GetConfiguration()).Select(s => s.Id).ToArray();
+                var filteredSourceIds = _configSettingsService.ListSources(_choco.GetConfiguration()).Select(s => s.Id).ToArray();
 
-            var mappedSources = allSources.Where(s => filteredSourceIds.Contains(s.Id)).ToArray();
-            return mappedSources;
+                var mappedSources = allSources.Where(s => filteredSourceIds.Contains(s.Id)).ToArray();
+                return mappedSources;
+            }
         }
 
         public async Task AddSource(ChocolateySource source)
@@ -512,7 +585,7 @@ namespace ChocolateyGui.Common.Windows.Services
                     config =>
                     {
                         config.CommandName = "source";
-                        config.SourceCommand.Command = SourceCommandType.add;
+                        config.SourceCommand.Command = SourceCommandType.Add;
                         config.SourceCommand.Name = source.Id;
                         config.Sources = source.Value;
                         config.SourceCommand.Username = source.UserName;
@@ -540,28 +613,34 @@ namespace ChocolateyGui.Common.Windows.Services
 
         public async Task DisableSource(string id)
         {
-            _choco.Set(
-                config =>
-                {
-                    config.CommandName = "source";
-                    config.SourceCommand.Command = SourceCommandType.disable;
-                    config.SourceCommand.Name = id;
-                });
+            using (await Lock.WriteLockAsync())
+            {
+                _choco.Set(
+                    config =>
+                    {
+                        config.CommandName = "source";
+                        config.SourceCommand.Command = SourceCommandType.Disable;
+                        config.SourceCommand.Name = id;
+                    });
 
-            await _choco.RunAsync();
+                await _choco.RunAsync();
+            }
         }
 
         public async Task EnableSource(string id)
         {
-            _choco.Set(
-                config =>
-                {
-                    config.CommandName = "source";
-                    config.SourceCommand.Command = SourceCommandType.enable;
-                    config.SourceCommand.Name = id;
-                });
+            using (await Lock.WriteLockAsync())
+            {
+                _choco.Set(
+                    config =>
+                    {
+                        config.CommandName = "source";
+                        config.SourceCommand.Command = SourceCommandType.Enable;
+                        config.SourceCommand.Name = id;
+                    });
 
-            await _choco.RunAsync();
+                await _choco.RunAsync();
+            }
         }
 
         public async Task UpdateSource(string id, ChocolateySource source)
@@ -595,7 +674,7 @@ namespace ChocolateyGui.Common.Windows.Services
                         config =>
                         {
                             config.CommandName = "source";
-                            config.SourceCommand.Command = SourceCommandType.remove;
+                            config.SourceCommand.Command = SourceCommandType.Remove;
                             config.SourceCommand.Name = id;
                         });
 
@@ -606,38 +685,44 @@ namespace ChocolateyGui.Common.Windows.Services
 
         public async Task ExportPackages(string exportFilePath, bool includeVersionNumbers)
         {
-            _choco.Set(
-                config =>
-                {
-                    config.CommandName = "export";
-                    config.ExportCommand.OutputFilePath = exportFilePath;
-                    config.ExportCommand.IncludeVersionNumbers = includeVersionNumbers;
-                });
+            using (await Lock.WriteLockAsync())
+            {
+                _choco.Set(
+                    config =>
+                    {
+                        config.CommandName = "export";
+                        config.ExportCommand.OutputFilePath = exportFilePath;
+                        config.ExportCommand.IncludeVersionNumbers = includeVersionNumbers;
+                    });
 
-            await _choco.RunAsync();
+                await _choco.RunAsync();
+            }
         }
 
         private static Package GetMappedPackage(GetChocolatey choco, PackageResult package, IMapper mapper, bool forceInstalled = false)
         {
-            var mappedPackage = package == null ? null : mapper.Map<Package>(package.Package);
+            var mappedPackage = package == null ? null : mapper.Map<Package>(package.SearchMetadata);
             if (mappedPackage != null)
             {
+                if (package.PackageMetadata != null)
+                {
+                    mappedPackage.ReleaseNotes = package.PackageMetadata.ReleaseNotes;
+                    mappedPackage.Language = package.PackageMetadata.Language;
+                    mappedPackage.Copyright = package.PackageMetadata.Copyright;
+                }
+
                 var packageInfoService = choco.Container().GetInstance<IChocolateyPackageInformationService>();
-                var packageInfo = packageInfoService.get_package_information(package.Package);
+                var packageInfo = packageInfoService.Get(package.PackageMetadata);
                 mappedPackage.IsPinned = packageInfo.IsPinned;
                 mappedPackage.IsInstalled = !string.IsNullOrWhiteSpace(package.InstallLocation) || forceInstalled;
-                mappedPackage.IsSideBySide = packageInfo.IsSideBySide;
 
-                mappedPackage.IsPrerelease = !string.IsNullOrWhiteSpace(mappedPackage.Version.SpecialVersion);
+                mappedPackage.IsPrerelease = mappedPackage.Version.IsPrerelease;
 
-                // Add a sanity check here for pre-release packages
-                // By default, pre-release packages are marked as IsLatestVersion = false, however, IsLatestVersion is
-                // what is used to show/hide the Out of Date message in the UI.  In these cases, if it is a pre-release
-                // mark IsLatestVersion as true, and then the outcome of the call to choco outdated will correct whether
-                // it is actually Out of Date or not
-                if (mappedPackage.IsPrerelease && mappedPackage.IsAbsoluteLatestVersion && !mappedPackage.IsLatestVersion)
+                var sourceUrl = packageInfo.SourceInstalledFrom ?? package.Source;
+
+                if (string.IsNullOrWhiteSpace(mappedPackage.GalleryDetailsUrl) && GalleryUriBuilder.IsKnownSource(sourceUrl))
                 {
-                    mappedPackage.IsLatestVersion = true;
+                    mappedPackage.GalleryDetailsUrl = GalleryUriBuilder.BuildFromPackageAndSource(package.Identity.Id, sourceUrl, package.Identity.Version)?.ToString();
                 }
             }
 
@@ -655,6 +740,13 @@ namespace ChocolateyGui.Common.Windows.Services
                     case LogLevel.Error:
                     case LogLevel.Fatal:
                         errors.Add(m.Message);
+                        break;
+                    case LogLevel.Info:
+                        if (System.Text.RegularExpressions.Regex.IsMatch(m.Message, ErrorRegex))
+                        {
+                            errors.Add(m.Message);
+                        }
+
                         break;
                 }
             };
@@ -702,7 +794,7 @@ namespace ChocolateyGui.Common.Windows.Services
             var xmlService = _choco.Container().GetInstance<IXmlService>();
             var config =
                 await Task.Run(
-                    () => xmlService.deserialize<ConfigFileSettings>(chocolatey.infrastructure.app.ApplicationParameters.GlobalConfigFileLocation));
+                    () => xmlService.Deserialize<ConfigFileSettings>(chocolatey.infrastructure.app.ApplicationParameters.GlobalConfigFileLocation));
             return config;
         }
     }

@@ -16,6 +16,10 @@ namespace ChocolateyGuiCli
 
         public static void Main(string[] args)
         {
+#if DEBUG
+            DebugInstallEnvironment.RedirectChocolateyInstallForDebugging();
+#endif
+
             AddAssemblyResolver();
 
             Runner.Run(args);
@@ -51,9 +55,9 @@ namespace ChocolateyGuiCli
                     }
 
 #if FORCE_CHOCOLATEY_OFFICIAL_KEY
-                    var chocolateyGuiPublicKey = Bootstrapper.OfficialChocolateyPublicKey;
+                    var chocolateyGuiPublicKey = Bootstrapper.OfficialChocolateyGuiPublicKey;
 #else
-                    var chocolateyGuiPublicKey = Bootstrapper.UnofficialChocolateyPublicKey;
+                    var chocolateyGuiPublicKey = Bootstrapper.UnofficialChocolateyGuiPublicKey;
 #endif
 
                     if (AssemblyResolver.DoesPublicKeyTokenMatch(requestedAssembly, chocolateyGuiPublicKey)

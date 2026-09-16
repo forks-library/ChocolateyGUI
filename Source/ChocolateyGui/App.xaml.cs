@@ -27,12 +27,15 @@ namespace ChocolateyGui
     /// </summary>
     public partial class App
     {
-        private static readonly App _application = new App();
         private static readonly TranslationSource _translationSource = TranslationSource.Instance;
 
         #region DupFinder Exclusion
         public App()
         {
+#if DEBUG
+            DebugInstallEnvironment.RedirectChocolateyInstallForDebugging();
+#endif
+
             AppDomain.CurrentDomain.AssemblyResolve += (sender, args) =>
             {
                 var requestedAssembly = new AssemblyName(args.Name);
@@ -59,9 +62,9 @@ namespace ChocolateyGui
                     }
 
 #if FORCE_CHOCOLATEY_OFFICIAL_KEY
-                    var chocolateyGuiPublicKey = Bootstrapper.OfficialChocolateyPublicKey;
+                    var chocolateyGuiPublicKey = Bootstrapper.OfficialChocolateyGuiPublicKey;
 #else
-                    var chocolateyGuiPublicKey = Bootstrapper.UnofficialChocolateyPublicKey;
+                    var chocolateyGuiPublicKey = Bootstrapper.UnofficialChocolateyGuiPublicKey;
 #endif
 
                     if (AssemblyResolver.DoesPublicKeyTokenMatch(requestedAssembly, chocolateyGuiPublicKey)
@@ -98,30 +101,6 @@ namespace ChocolateyGui
         #endregion
 
         internal static SplashScreen SplashScreen { get; set; }
-
-        [STAThread]
-        public static void Main(string[] args)
-        {
-            var splashScreenService = Bootstrapper.Container.Resolve<ISplashScreenService>();
-            splashScreenService.Show();
-
-            _application.InitializeComponent();
-
-            try
-            {
-                _application.Run();
-            }
-            catch (Exception ex)
-            {
-                if (Bootstrapper.IsExiting)
-                {
-                    Bootstrapper.Logger.Error(ex, L(nameof(Common.Properties.Resources.Command_GeneralError)));
-                    return;
-                }
-
-                throw;
-            }
-        }
 
         /// <inheritdoc />
         protected override void OnStartup(StartupEventArgs e)

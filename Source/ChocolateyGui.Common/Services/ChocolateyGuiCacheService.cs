@@ -6,7 +6,9 @@
 // --------------------------------------------------------------------------------------------------------------------
 
 using System;
+using System.IO;
 using chocolatey.infrastructure.filesystem;
+using ChocolateyGui.Common.Models;
 
 namespace ChocolateyGui.Common.Services
 {
@@ -22,7 +24,7 @@ namespace ChocolateyGui.Common.Services
             _fileStorageService = fileStorageService;
             _fileSystem = fileSystem;
 
-            _localAppDataPath = _fileSystem.combine_paths(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData, Environment.SpecialFolderOption.DoNotVerify), "Chocolatey GUI");
+            _localAppDataPath = _fileSystem.CombinePaths(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData, Environment.SpecialFolderOption.DoNotVerify), "Chocolatey GUI");
         }
 
         public void PurgeIcons()
@@ -32,17 +34,42 @@ namespace ChocolateyGui.Common.Services
 
         public void PurgeOutdatedPackages()
         {
-            var outdatedPackagesFile = _fileSystem.combine_paths(_localAppDataPath, "outdatedPackages.xml");
-            var outdatedPackagesBackupFile = _fileSystem.combine_paths(_localAppDataPath, "outdatedPackages.xml.backup");
+            PurgeOutdatedPackages(source: null, includePrerelease: false);
+        }
 
-            if (_fileSystem.file_exists(outdatedPackagesFile))
+        public void PurgeOutdatedPackages(ChocolateySource source, bool includePrerelease)
+        {
+            if (source == null)
             {
-                _fileSystem.delete_file(outdatedPackagesFile);
+                var outdatedFiles = Directory.GetFiles(_localAppDataPath, "outdatedPackages*.xml");
+
+                foreach (var outdatedFile in outdatedFiles)
+                {
+                    _fileSystem.DeleteFile(outdatedFile);
+                }
             }
-
-            if (_fileSystem.file_exists(outdatedPackagesBackupFile))
+            else
             {
-                _fileSystem.delete_file(outdatedPackagesBackupFile);
+                var outdatedPackageFileName = "outdatedPackages";
+
+                if (source != null)
+                {
+                    outdatedPackageFileName = $"{outdatedPackageFileName}-{source.Id}";
+                }
+
+                if (includePrerelease)
+                {
+                    outdatedPackageFileName = $"{outdatedPackageFileName}-pre.xml";
+                }
+                else
+                {
+                    outdatedPackageFileName = $"{outdatedPackageFileName}.xml";
+                }
+
+                if (_fileSystem.FileExists(outdatedPackageFileName))
+                {
+                    _fileSystem.DeleteFile(outdatedPackageFileName);
+                }
             }
         }
     }

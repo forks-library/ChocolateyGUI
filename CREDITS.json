@@ -1,0 +1,373 @@
+{
+    "name": "Chocolatey GUI",
+    "isPrivate": false,
+    "link": "https://github.com/chocolatey/ChocolateyGUI",
+    "licenseName": "LICENSE.txt",
+    "licenseLink": "https://github.com/chocolatey/ChocolateyGUI/blob/master/LICENSE.txt",
+    "dependencies": [
+        {
+            "name": "Autofac",
+            "link": "https://github.com/autofac/Autofac",
+            "version": "4.6.1",
+            "licenses": [
+                {
+                    "type": "MIT",
+                    "link": "https://github.com/autofac/Autofac/blob/c5e5cfb38fc5ec363b96e95917b77d86d577c03f/LICENSE",
+                    "name": "LICENSE"
+                }
+            ]
+        },
+        {
+            "name": "AutoMapper",
+            "link": "https://github.com/AutoMapper/AutoMapper",
+            "version": "7.0.1",
+            "licenses": [
+                {
+                    "type": "MIT",
+                    "link": "https://github.com/AutoMapper/AutoMapper/blob/75344b28d2152f1570c8261dce7346abfed2b837/LICENSE.txt",
+                    "name": "LICENSE.txt"
+                }
+            ]
+        },
+        {
+            "name": "Caliburn.Micro",
+            "link": "https://github.com/Caliburn-Micro/Caliburn.Micro",
+            "version": "3.2.0",
+            "licenses": [
+                {
+                    "type": "MIT",
+                    "link": "https://github.com/Caliburn-Micro/Caliburn.Micro/blob/544babd1865846af175ba32d86c839eb354714aa/License.txt",
+                    "name": "License.txt"
+                }
+            ]
+        },
+        {
+            "name": "Chocolatey CLI / Chocolatey.Lib",
+            "link": "https://github.com/chocolatey/choco",
+            "version": "2.7.0",
+            "licenses": [
+                {
+                    "type": "Apache-2.0",
+                    "link": "https://github.com/chocolatey/choco/blob/044c62398b82e64a4bb1d89307fb2f82ba5c6671/LICENSE",
+                    "name": "LICENSE"
+                }
+            ]
+        },
+        {
+            "name": "LiteDB",
+            "link": "https://github.com/litedb-org/LiteDB",
+            "version": "v5.0.21",
+            "licenses": [
+                {
+                    "type": "MIT",
+                    "link": "https://github.com/litedb-org/LiteDB/blob/84065086a8e8716063b255d0abb332708d0b2ad3/LICENSE",
+                    "name": "LICENSE"
+                }
+            ]
+        },
+        {
+            "name": "log4net",
+            "link": "https://github.com/apache/logging-log4net",
+            "version": "rel/3.3.1",
+            "licenses": [
+                {
+                    "type": "Apache-2.0",
+                    "link": "https://github.com/apache/logging-log4net/blob/7fcc7f425b81b9df7c8a8719ed90953b938cd10e/LICENSE",
+                    "name": "LICENSE"
+                }
+            ]
+        },
+        {
+            "name": "MahApps.Metro",
+            "link": "https://github.com/MahApps/MahApps.Metro",
+            "version": "2.4.11",
+            "licenses": [
+                {
+                    "type": "MIT",
+                    "link": "https://github.com/MahApps/MahApps.Metro/blob/f1e91f8ab62fc83273d71c82830a0d05e7f7c2f6/LICENSE",
+                    "name": "LICENSE"
+                }
+            ]
+        },
+        {
+            "name": "MahApps.Metro.IconPacks.BoxIcons",
+            "link": "https://github.com/MahApps/MahApps.Metro.IconPacks",
+            "version": "6.2.1",
+            "licenses": [
+                {
+                    "type": "MIT",
+                    "link": "https://github.com/MahApps/MahApps.Metro.IconPacks/blob/d7d1c4ab6202143fd83410d715d323a2dbddf320/LICENSE",
+                    "name": "LICENSE"
+                }
+            ]
+        },
+        {
+            "name": "MahApps.Metro.IconPacks.Entypo",
+            "link": "https://github.com/MahApps/MahApps.Metro.IconPacks",
+            "version": "6.2.1",
+            "licenses": [
+                {
+                    "type": "MIT",
+                    "link": "https://github.com/MahApps/MahApps.Metro.IconPacks/blob/d7d1c4ab6202143fd83410d715d323a2dbddf320/LICENSE",
+                    "name": "LICENSE"
+                }
+            ]
+        },
+        {
+            "name": "MahApps.Metro.IconPacks.FontAwesome",
+            "link": "https://github.com/MahApps/MahApps.Metro.IconPacks",
+            "version": "6.2.1",
+            "licenses": [
+                {
+                    "type": "MIT",
+                    "link": "https://github.com/MahApps/MahApps.Metro.IconPacks/blob/d7d1c4ab6202143fd83410d715d323a2dbddf320/LICENSE",
+                    "name": "LICENSE"
+                }
+            ]
+        },
+        {
+            "name": "MahApps.Metro.IconPacks.Modern",
+            "link": "https://github.com/MahApps/MahApps.Metro.IconPacks",
+            "version": "6.2.1",
+            "licenses": [
+                {
+                    "type": "MIT",
+                    "link": "https://github.com/MahApps/MahApps.Metro.IconPacks/blob/d7d1c4ab6202143fd83410d715d323a2dbddf320/LICENSE",
+                    "name": "LICENSE"
+                }
+            ]
+        },
+        {
+            "name": "MahApps.Metro.IconPacks.Octicons",
+            "link": "https://github.com/MahApps/MahApps.Metro.IconPacks",
+            "version": "6.2.1",
+            "licenses": [
+                {
+                    "type": "MIT",
+                    "link": "https://github.com/MahApps/MahApps.Metro.IconPacks/blob/d7d1c4ab6202143fd83410d715d323a2dbddf320/LICENSE",
+                    "name": "LICENSE"
+                }
+            ]
+        },
+        {
+            "name": "MahApps.Metro.SimpleChildWindow",
+            "link": "https://github.com/punker76/MahApps.Metro.SimpleChildWindow",
+            "version": "2.2.1",
+            "licenses": [
+                {
+                    "type": "MIT",
+                    "link": "https://github.com/punker76/MahApps.Metro.SimpleChildWindow/blob/f17d0def889df10f92f00e9f2240ace90b67f24a/LICENSE",
+                    "name": "LICENSE"
+                }
+            ]
+        },
+        {
+            "name": "Markdig.Wpf.Signed",
+            "link": "https://github.com/Kryptos-FR/markdig.wpf",
+            "version": "0.5.0.1",
+            "licenses": [
+                {
+                    "type": "MIT",
+                    "link": "https://github.com/Kryptos-FR/markdig.wpf/blob/f172c1337eacd80f5fd138b1eb2547e62690b243/LICENSE.md",
+                    "name": "LICENSE.md"
+                }
+            ]
+        },
+        {
+            "name": "Markdig.Signed",
+            "link": "https://github.com/xoofx/markdig",
+            "version": "0.23.0",
+            "licenses": [
+                {
+                    "type": "BSD-3-Clause",
+                    "link": "https://github.com/xoofx/markdig/blob/751c79fce4e92857f861d8af0854a8eff0b29071/license.txt",
+                    "name": "license.txt"
+                }
+            ]
+        },
+        {
+            "name": "Microsoft.CSharp",
+            "link": "https://github.com/dotnet/runtime",
+            "version": "v4.7.0",
+            "licenses": [
+                {
+                    "type": "MIT",
+                    "link": "https://github.com/dotnet/runtime/blob/62e1031be5e0e0f11800e4ac8afca3a3682e92d8/LICENSE.TXT",
+                    "info": "No tag present for this specific release point; falling back to the current permalink of the latest license file from the default branch.",
+                    "name": "LICENSE.TXT"
+                }
+            ]
+        },
+        {
+            "name": "Microsoft.VisualStudio.Threading",
+            "link": "https://github.com/microsoft/vs-threading",
+            "version": "v17.14.15",
+            "licenses": [
+                {
+                    "type": "MIT",
+                    "link": "https://github.com/microsoft/vs-threading/blob/051a9047ff5c89efa46058a629c3add6c122e9b6/LICENSE",
+                    "name": "LICENSE"
+                }
+            ]
+        },
+        {
+            "name": "Microsoft.VisualStudio.Validation",
+            "link": "https://github.com/microsoft/vs-validation",
+            "version": "v17.13.22",
+            "licenses": [
+                {
+                    "type": "MIT",
+                    "link": "https://github.com/microsoft/vs-validation/blob/fb5e81b365d0c447e6a2313894290675f550f986/LICENSE",
+                    "info": "No tag present for this specific release point; falling back to the current permalink of the latest license file from the default branch.",
+                    "name": "LICENSE"
+                }
+            ]
+        },
+        {
+            "name": "Serilog",
+            "link": "https://github.com/serilog/serilog",
+            "version": "v4.3.0",
+            "licenses": [
+                {
+                    "type": "Apache-2.0",
+                    "link": "https://github.com/serilog/serilog/blob/1b461379f4e218a939d5c94897df2a1dbbf90573/LICENSE",
+                    "name": "LICENSE"
+                }
+            ]
+        },
+        {
+            "name": "Serilog.Formatting.Compact",
+            "link": "https://github.com/serilog/serilog-formatting-compact",
+            "version": "v3.0.0",
+            "licenses": [
+                {
+                    "type": "Apache-2.0",
+                    "link": "https://github.com/serilog/serilog-formatting-compact/blob/8472ad8ccb97432ca7efbe78d8bc0eaf61db5356/LICENSE",
+                    "name": "LICENSE"
+                }
+            ]
+        },
+        {
+            "name": "Serilog.Sinks.Async",
+            "link": "https://github.com/serilog/serilog-sinks-async",
+            "version": "v2.1.0",
+            "licenses": [
+                {
+                    "type": "Apache-2.0",
+                    "link": "https://github.com/serilog/serilog-sinks-async/blob/5c6e5df7dffe5535978475c9ce8c5c6fb1cc9dca/LICENSE",
+                    "name": "LICENSE"
+                }
+            ]
+        },
+        {
+            "name": "Serilog.Sinks.Console",
+            "link": "https://github.com/serilog/serilog-sinks-console",
+            "version": "v6.1.1",
+            "licenses": [
+                {
+                    "type": "Apache-2.0",
+                    "link": "https://github.com/serilog/serilog-sinks-console/blob/9b75d510787f5d54cf76584a3c3341d7eab0ee0a/LICENSE",
+                    "name": "LICENSE"
+                }
+            ]
+        },
+        {
+            "name": "Serilog.Sinks.PeriodicBatching",
+            "link": "https://github.com/serilog/serilog-sinks-periodicbatching",
+            "version": "v5.0.0",
+            "licenses": [
+                {
+                    "type": "Apache-2.0",
+                    "link": "https://github.com/serilog/serilog-sinks-periodicbatching/blob/649fc9a10d3339e7cdcc2cb8982d757310b310ce/LICENSE",
+                    "name": "LICENSE"
+                }
+            ]
+        },
+        {
+            "name": "Serilog.Sinks.RollingFile",
+            "link": "https://github.com/serilog/serilog-sinks-rollingfile",
+            "version": "3.3.0",
+            "licenses": [
+                {
+                    "type": "Apache-2.0",
+                    "link": "https://github.com/serilog/serilog-sinks-rollingfile/blob/2a24d25b8fb56f9aab7eeb9887b728c060bf50d6/LICENSE",
+                    "name": "LICENSE"
+                }
+            ]
+        },
+        {
+            "name": "SkiaSharp.HarfBuzz",
+            "link": "https://github.com/mono/SkiaSharp/tree/main/changelogs/SkiaSharp.HarfBuzz",
+            "version": "1.68.3",
+            "licenses": [
+                {
+                    "type": "MIT",
+                    "link": "https://github.com/mono/SkiaSharp/blob/fd9484a06ae96f0195a80d93e80d6b54323f450a/LICENSE.txt",
+                    "name": "LICENSE.txt"
+                }
+            ]
+        },
+        {
+            "name": "Splat",
+            "link": "https://github.com/reactiveui/splat",
+            "version": "2.0.0",
+            "licenses": [
+                {
+                    "type": "MIT",
+                    "link": "https://github.com/reactiveui/splat/blob/5a4912c1e0f5eeb434ec9f2452f6571d2e34c34b/LICENSE",
+                    "name": "LICENSE"
+                }
+            ]
+        },
+        {
+            "name": "Svg.Skia",
+            "link": "https://github.com/wieslawsoltes/Svg.Skia",
+            "version": "v3.4.1",
+            "licenses": [
+                {
+                    "type": "MIT",
+                    "link": "https://github.com/wieslawsoltes/Svg.Skia/blob/c3030266d07c82738c6639bd6bc86080e2dafb1e/LICENSE.TXT",
+                    "name": "LICENSE.TXT"
+                }
+            ]
+        },
+        {
+            "name": "System.Data.DataSetExtensions",
+            "link": "https://github.com/dotnet/runtime",
+            "version": "v4.5.0",
+            "licenses": [
+                {
+                    "type": "MIT",
+                    "link": "https://github.com/dotnet/runtime/blob/62e1031be5e0e0f11800e4ac8afca3a3682e92d8/LICENSE.TXT",
+                    "info": "No tag present for this specific release point; falling back to the current permalink of the latest license file from the default branch.",
+                    "name": "LICENSE.TXT"
+                }
+            ]
+        },
+        {
+            "name": "System.Net.Http",
+            "link": "https://github.com/dotnet/core",
+            "version": "4.3.4",
+            "licenses": [
+                {
+                    "type": "MIT",
+                    "link": "https://github.com/dotnet/core/blob/f92e502306a9f1c9f86f14e5240a4d2e235eb88e/LICENSE.TXT",
+                    "info": "No tag present for this specific release point; falling back to the current permalink of the latest license file from the default branch.",
+                    "name": "LICENSE.TXT"
+                }
+            ]
+        },
+        {
+            "name": "System.Runtime.Caching",
+            "link": "https://github.com/dotnet/dotnet",
+            "version": "v10.0.2",
+            "licenses": [
+                {
+                    "type": "MIT",
+                    "link": "https://github.com/dotnet/dotnet/blob/44525024595742ebe09023abe709df51de65009b/LICENSE.TXT",
+                    "name": "LICENSE.TXT"
+                }
+            ]
+        }
+    ]
+}

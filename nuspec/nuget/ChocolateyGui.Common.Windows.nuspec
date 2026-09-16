@@ -7,7 +7,7 @@
     <title>Chocolatey GUI Common Windows</title>
     <authors>Chocolatey</authors>
     <projectUrl>https://github.com/chocolatey/ChocolateyGUI</projectUrl>
-    <iconUrl>https://chocolatey.org/assets/images/nupkg/chocolateyicon.png</iconUrl>
+    <iconUrl>https://img.chocolatey.org/nupkg/chocolateyicon.png</iconUrl>
     <licenseUrl>https://raw.githubusercontent.com/chocolatey/ChocolateyGUI/develop/LICENSE.txt</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <summary>Shared code for working on Windows with Chocolatey GUI</summary>
@@ -19,6 +19,6 @@ All release notes for Chocolatey GUI can be found on the docs site - https://doc
     </releaseNotes>
   </metadata>
   <files>
-    <file src="ChocolateyGui.Common.Windows.dll" target="lib/net48" />
+    <file src="net48/ChocolateyGui.Common.Windows.dll" target="lib/net48" />
   </files>
 </package>

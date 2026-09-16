@@ -13,6 +13,7 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Data;
 using AutoMapper;
 using Caliburn.Micro;
 using ChocolateyGui.Common.Enums;
@@ -26,7 +27,7 @@ using ChocolateyGui.Common.ViewModels.Items;
 using ChocolateyGui.Common.Windows.Services;
 using ChocolateyGui.Common.Windows.Utilities;
 using ChocolateyGui.Common.Windows.Utilities.Extensions;
-using NuGet;
+using NuGet.Packaging;
 using Serilog;
 using ILogger = Serilog.ILogger;
 
@@ -82,6 +83,7 @@ namespace ChocolateyGui.Common.Windows.ViewModels
             _mapper = mapper;
 
             Packages = new ObservableCollection<IPackageViewModel>();
+            PackageSource = CollectionViewSource.GetDefaultView(Packages);
 
             if (source.Id[0] == '[' && source.Id[source.Id.Length - 1] == ']')
             {
@@ -140,6 +142,8 @@ namespace ChocolateyGui.Common.Windows.ViewModels
             get { return _packageViewModels; }
             set { this.SetPropertyValue(ref _packageViewModels, value); }
         }
+
+        public ICollectionView PackageSource { get; }
 
         public int CurrentPage
         {
@@ -310,24 +314,57 @@ namespace ChocolateyGui.Common.Windows.ViewModels
                                     IncludeAllVersions,
                                     MatchWord,
                                     Source.Value));
-                    var installed = await _chocolateyPackageService.GetInstalledPackages();
-                    var outdated = await _chocolateyPackageService.GetOutdatedPackages(false, null, forceCheckForOutdatedPackages);
+                    var installedPackages = await _chocolateyPackageService.GetInstalledPackages();
+                    
+                    PackageSource.Refresh();
 
                     PageCount = (int)Math.Ceiling((double)result.TotalCount / (double)PageSize);
                     Packages.Clear();
 
-                    result.Packages.ToList().ForEach(p =>
+                    // When showing all versions, the source returns them in the active sort order (e.g.
+                    // popularity / download count), which interleaves the versions of a package. Order each
+                    // package's versions newest-first, keeping the packages themselves in their original
+                    // (relevance) order.
+                    var packagesToDisplay = IncludeAllVersions
+                        ? result.Packages
+                            .GroupBy(package => package.Id, StringComparer.OrdinalIgnoreCase)
+                            .SelectMany(group => group.OrderByDescending(package => package.Version))
+                            .ToList()
+                        : result.Packages.ToList();
+
+                    packagesToDisplay.ForEach(p =>
                     {
-                        if (installed.Any(package => string.Equals(package.Id, p.Id, StringComparison.OrdinalIgnoreCase)))
+                        var remoteVersion = p.Version;
+
+                        if (IncludeAllVersions)
                         {
-                            p.IsInstalled = true;
+                            // When showing all versions, every row is a distinct version of the same package.
+                            // Only flag the row whose version is actually installed, and never overwrite the
+                            // displayed version - otherwise every row collapses to the installed version (#1146).
+                            var installedVersion = installedPackages.FirstOrDefault(package =>
+                                string.Equals(package.Id, p.Id, StringComparison.OrdinalIgnoreCase)
+                                && Equals(package.Version, p.Version));
+                            if (installedVersion != null)
+                            {
+                                p.IsPinned = installedVersion.IsPinned;
+                                p.IsInstalled = true;
+                            }
                         }
-                        if (outdated.Any(package => string.Equals(package.Id, p.Id, StringComparison.OrdinalIgnoreCase)))
+                        else
                         {
-                            p.IsLatestVersion = false;
+                            var installedPackage = installedPackages.FirstOrDefault(package => string.Equals(package.Id, p.Id, StringComparison.OrdinalIgnoreCase));
+                            if (installedPackage != null)
+                            {
+                                p.Version = installedPackage.Version;
+                                p.IsPinned = installedPackage.IsPinned;
+                                p.IsInstalled = true;
+                            }
                         }
 
-                        Packages.Add(Mapper.Map<IPackageViewModel>(p));
+                        var packageViewModel = Mapper.Map<IPackageViewModel>(p);
+                        packageViewModel.ChocolateySource = Source;
+                        packageViewModel.RemoteVersion = remoteVersion;
+                        Packages.Add(packageViewModel);
                     });
 
                     if (_configService.GetEffectiveConfiguration().ExcludeInstalledPackages ?? false)
@@ -338,6 +375,13 @@ namespace ChocolateyGui.Common.Windows.ViewModels
                     if (PageCount < CurrentPage)
                     {
                         CurrentPage = PageCount == 0 ? 1 : PageCount;
+                    }
+
+                    var outdatedPackages = await _chocolateyPackageService.GetOutdatedPackages(IncludePrerelease, forceCheckForOutdatedPackages: forceCheckForOutdatedPackages, source: Source);
+
+                    foreach (var update in outdatedPackages)
+                    {
+                        await _eventAggregator.PublishOnUIThreadAsync(new PackageOutdatedMessage(update.Id, update.Version, source: Source));
                     }
                 }
                 finally
@@ -365,7 +409,7 @@ namespace ChocolateyGui.Common.Windows.ViewModels
 
         public async void CheckForOutdatedPackages()
         {
-            _chocolateyGuiCacheService.PurgeOutdatedPackages();
+            _chocolateyGuiCacheService.PurgeOutdatedPackages(Source, IncludePrerelease);
             await LoadPackages(true);
         }
 

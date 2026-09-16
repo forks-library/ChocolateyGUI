@@ -179,14 +179,14 @@ Error {2}{3}</value>
     <value>Failed to unpin package.</value>
   </data>
   <data name="ChocolateyRemotePackageService_UpdateFailedMessage" xml:space="preserve">
-    <value>Failed to update package "{0}".
+    <value>Failed to upgrade package "{0}".
 Error: {1}{2}</value>
-    <comment>{0} = The name of the package that failed to update
+    <comment>{0} = The name of the package that failed to upgrade
 {1} = A collection of messages returned from Chocolatey
 {2} = The message of the exception that is being thrown</comment>
   </data>
   <data name="ChocolateyRemotePackageService_UpdateFailedTitle" xml:space="preserve">
-    <value>Failed to update package.</value>
+    <value>Failed to upgrade package.</value>
   </data>
   <data name="Controls_PackageListByAuthor" xml:space="preserve">
     <value>By: </value>
@@ -204,7 +204,7 @@ Error: {1}{2}</value>
     <value>Install</value>
   </data>
   <data name="Controls_PackagesContextMenuPin" xml:space="preserve">
-    <value>Pin (Ignore Updates)</value>
+    <value>Pin (Ignore Upgrades)</value>
   </data>
   <data name="Controls_PackagesContextMenuReinstall" xml:space="preserve">
     <value>Reinstall</value>
@@ -216,7 +216,7 @@ Error: {1}{2}</value>
     <value>Unpin</value>
   </data>
   <data name="Controls_PackagesContextMenuUpdate" xml:space="preserve">
-    <value>Update</value>
+    <value>Upgrade</value>
   </data>
   <data name="LocalSourceViewModel_Chocolatey" xml:space="preserve">
     <value>Chocolatey</value>
@@ -229,7 +229,7 @@ Error: {1}{2}</value>
     <value>Packages</value>
   </data>
   <data name="LocalSourceViewModel_UpdateAvailableForChocolatey" xml:space="preserve">
-    <value>There's an update available for Chocolatey.</value>
+    <value>There's an upgrade available for Chocolatey.</value>
   </data>
   <data name="LocalSourceView_ButtonExport" xml:space="preserve">
     <value>Export</value>
@@ -244,13 +244,13 @@ Error: {1}{2}</value>
     <value>Check for outdated packages (forced)</value>
   </data>
   <data name="LocalSourceView_ButtonUpdateAll" xml:space="preserve">
-    <value>Update All</value>
+    <value>Upgrade All</value>
   </data>
   <data name="LocalSourceView_CheckboxMatchExact" xml:space="preserve">
     <value>Match Word Exactly</value>
   </data>
   <data name="LocalSourceView_CheckboxPkgsWithUpdates" xml:space="preserve">
-    <value>Show Only Packages with Updates</value>
+    <value>Show Only Packages with Upgrades</value>
   </data>
   <data name="LocalSourceView_Grid_Authors" xml:space="preserve">
     <value>Authors</value>
@@ -287,7 +287,7 @@ Error: {1}{2}</value>
     <value>Failed to Unpin</value>
   </data>
   <data name="PackageViewModel_FailedToUpdate" xml:space="preserve">
-    <value>Failed to Update</value>
+    <value>Failed to Upgrade</value>
   </data>
   <data name="PackageViewModel_InstallingPackage" xml:space="preserve">
     <value>Installing package</value>
@@ -359,7 +359,7 @@ NOTE: Probably only necessary to change in RTL languages.</comment>
     <value>Install</value>
   </data>
   <data name="PackageView_ButtonPin" xml:space="preserve">
-    <value>Pin (Ignore Updates)</value>
+    <value>Pin (Ignore Upgrades)</value>
   </data>
   <data name="PackageView_ButtonReinstall" xml:space="preserve">
     <value>Reinstall</value>
@@ -371,7 +371,7 @@ NOTE: Probably only necessary to change in RTL languages.</comment>
     <value>Unpin</value>
   </data>
   <data name="PackageView_ButtonUpdate" xml:space="preserve">
-    <value>Update</value>
+    <value>Upgrade</value>
   </data>
   <data name="PackageView_Dependencies" xml:space="preserve">
     <value>Dependencies</value>
@@ -421,7 +421,7 @@ NOTE: Probably only necessary to change in RTL languages.</comment>
   <data name="RemoteSourceViewModel_FailedToLoadRemotePackages" xml:space="preserve">
     <value>Failed to load remote packages!
 {0}</value>
-    <comment>{0} = The exception message that occured</comment>
+    <comment>{0} = The exception message that occurred</comment>
   </data>
   <data name="RemoteSourceViewModel_FeedSearchError" xml:space="preserve">
     <value>Feed Search Error</value>
@@ -635,9 +635,6 @@ Or if there is a traditional way to show sorting by the Title in your language, 
   <data name="RemoteSourceViewModel_FetchingPackages" xml:space="preserve">
     <value>Fetching packages...</value>
   </data>
-  <data name="LocalSourceView_ToolTip_InstalledSideBySide" xml:space="preserve">
-    <value>Installed Side by Side with another version of the same package.</value>
-  </data>
   <data name="LocalSourceView_ToolTip_Pinned" xml:space="preserve">
     <value>Pinned</value>
   </data>
@@ -672,7 +669,7 @@ Or if there is a traditional way to show sorting by the Title in your language, 
     <value>Enables live search, which returns results after a short delay without clicking the search button.</value>
   </data>
   <data name="PackageView_Version" xml:space="preserve">
-    <value>Version</value>
+    <value>Installed Version</value>
   </data>
   <data name="AboutView_History" xml:space="preserve">
     <value>History</value>
@@ -887,7 +884,7 @@ Normal:
     <value>This action will delete all cached icons that appear on the Tile Views of Chocolatey GUI.  Are you sure you want to proceed (this action cannot be undone)?</value>
   </data>
   <data name="Dialog_AreYouSureOutdatedPackagesMessage" xml:space="preserve">
-    <value>This action will delete the file containing the list of outdated packages for this computer.  Are you sure you want to proceed (this action cannot be undone)?</value>
+    <value>This action will delete the files containing the list of outdated packages for this computer.  Are you sure you want to proceed (this action cannot be undone)?</value>
   </data>
   <data name="Dialog_AreYouSureTitle" xml:space="preserve">
     <value>Are you sure?</value>
@@ -1038,10 +1035,10 @@ Please contact your System Administrator to enable this operation.</value>
     <value>Unpin from the currently installed package version</value>
   </data>
   <data name="Application_OperationUpgrade" xml:space="preserve">
-    <value>Update the currently installed package version</value>
+    <value>Upgrade the currently installed package version</value>
   </data>
   <data name="LocalSourceView_ButtonUpdateAllDisabled" xml:space="preserve">
-    <value>No packages need to be updated</value>
+    <value>No packages need to be upgraded</value>
   </data>
   <data name="AdvancedChocolateyDialog_AdvancedOptions_Header" xml:space="preserve">
     <value>Advanced Options</value>
@@ -1063,12 +1060,6 @@ Please contact your System Administrator to enable this operation.</value>
   </data>
   <data name="AdvancedChocolateyDialog_AllowEmptyChecksums_ToolTip" xml:space="preserve">
     <value>Allow packages to have empty/missing checksums for downloaded resources from non-secure locations (HTTP, FTP). Using this switch is not recommended if using sources that download resources from the internet. Only overrides the value in the configuration when 'On' is specified.</value>
-  </data>
-  <data name="AdvancedChocolateyDialog_AllowMultipleVersions_Header" xml:space="preserve">
-    <value>Allow Multiple Versions</value>
-  </data>
-  <data name="AdvancedChocolateyDialog_AllowMultipleVersions_ToolTip" xml:space="preserve">
-    <value>Should multiple versions of a package be installed?</value>
   </data>
   <data name="AdvancedChocolateyDialog_ApplyInstallArgumentsToDependencies_Header" xml:space="preserve">
     <value>Apply Install Arguments to Dependencies</value>
@@ -1239,10 +1230,13 @@ Please contact your System Administrator to enable this operation.</value>
     <value>Controls whether or not the This PC source is displayed in Chocolatey GUI.  Enabling this feature means that Chocolatey GUI will no longer show a list of all the currently installed packages on the machine.  NOTE: This feature will only work with Chocolatey for Business and the Chocolatey GUI licensed extension installed.</value>
   </data>
   <data name="SettingsView_TogglePreventUsageOfUpdateAllButtonDescription" xml:space="preserve">
-    <value>Prevents the ability for user to use the Update All button. NOTE: This feature will only work with Chocolatey for Business and the Chocolatey GUI licensed extension installed.</value>
+    <value>Prevents the ability for user to use the Upgrade All button. NOTE: This feature will only work with Chocolatey for Business and the Chocolatey GUI licensed extension installed.</value>
+  </data>
+  <data name="SettingsView_ToggleSkipModalDialogConfirmationDescription" xml:space="preserve">
+    <value>Skip modal dialog confirmations when performing potentially destructive actions.</value>
   </data>
   <data name="LocalSourceViewModel_ExportComplete" xml:space="preserve">
-    <value>All the currrently installed packages have been exported to {0}</value>
+    <value>All the currently installed packages have been exported to {0}</value>
     <comment>{0} = The path to where the exported packages have been placed</comment>
   </data>
   <data name="SettingsView_Language" xml:space="preserve">
@@ -1300,7 +1294,10 @@ Please contact your System Administrator to enable this operation.</value>
     <value>Prevent Preload</value>
   </data>
   <data name="ChocolateyGUI_PreventUsageOfUpdateAllButtonTitle" xml:space="preserve">
-    <value>Prevent Usage of Update All Button</value>
+    <value>Prevent Usage of Upgrade All Button</value>
+  </data>
+  <data name="ChocolateyGUI_SkipModalDialogConfirmationTitle" xml:space="preserve">
+    <value>Skip Modal Dialog Confirmation</value>
   </data>
   <data name="ChocolateyGUI_ShowAdditionalPackageInformationTitle" xml:space="preserve">
     <value>Show Additional Package Information</value>
@@ -1332,8 +1329,10 @@ Please contact your System Administrator to enable this operation.</value>
     <value>Use Delayed Search</value>
   </data>
   <data name="Application_PackageArgumentsError" xml:space="preserve">
-    <value>There as an error attempting to read the contents of the .arguments file for version {0} of package '{1}'.  See log file for more information.</value>
-    <comment>{0} = The version of the selected package  {1} = The id for the currently selected package</comment>
+    <value>There was an error attempting to read the contents of the .arguments file for version {0} of package '{1}'.  See log file for more information.</value>
+    <comment>{0} = The version of the selected package
+{1} = The id for the currently selected package
+</comment>
   </data>
   <data name="PackageView_ButtonPackageArguments" xml:space="preserve">
     <value>View Package Arguments</value>
@@ -1379,5 +1378,34 @@ Please contact your System Administrator to enable this operation.</value>
   <data name="AdvancedChocolateyDialog_Browse" xml:space="preserve">
     <value>Browse</value>
     <comment>This text is used for both when a user clicks a button supposed to select a file, and when selecting a folder.</comment>
+  </data>
+  <data name="AdvancedChocolateyDialog_IgnoreHttpCache_Header" xml:space="preserve">
+    <value>Ignore HTTP Cache</value>
+  </data>
+  <data name="AdvancedChocolateyDialog_IgnoreHttpCache_ToolTip" xml:space="preserve">
+    <value>Ignore any HTTP caches that have previously been created when querying sources, and create new caches.</value>
+  </data>
+  <data name="RemoteSourceView_Outdated" xml:space="preserve">
+    <value>Out of Date</value>
+  </data>
+  <data name="PackageView_AvailableVersion" xml:space="preserve">
+    <value>Available Version</value>
+  </data>
+  <data name="PackageViewModel_FailedToOpenGallery" xml:space="preserve">
+    <value>Failed to open gallery URL</value>
+  </data>
+  <data name="PackageViewModel_RanIntoOpenGalleryError" xml:space="preserve">
+    <value>Unable to open gallery URL {0} for package {1}, version {2}.
+Error: {3}</value>
+    <comment>{0} = The full URL to the Gallery
+{1} = The Identifier of the package
+{2} = The version of the package
+{3} = The exception message</comment>
+  </data>
+  <data name="Controls_PackagesContextMenuOpenGallery" xml:space="preserve">
+    <value>Open Gallery</value>
+  </data>
+  <data name="Application_OperationOpenGallery" xml:space="preserve">
+    <value>Open the known URL to the Gallery in a new browser tab</value>
   </data>
 </root>

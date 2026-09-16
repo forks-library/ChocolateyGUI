@@ -19,7 +19,7 @@ namespace ChocolateyGui.Common.Properties {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "16.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "18.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     public class Resources {
@@ -156,24 +156,6 @@ namespace ChocolateyGui.Common.Properties {
         public static string AdvancedChocolateyDialog_AllowEmptyChecksumsSecure_ToolTip {
             get {
                 return ResourceManager.GetString("AdvancedChocolateyDialog_AllowEmptyChecksumsSecure_ToolTip", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Allow Multiple Versions.
-        /// </summary>
-        public static string AdvancedChocolateyDialog_AllowMultipleVersions_Header {
-            get {
-                return ResourceManager.GetString("AdvancedChocolateyDialog_AllowMultipleVersions_Header", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Should multiple versions of a package be installed?.
-        /// </summary>
-        public static string AdvancedChocolateyDialog_AllowMultipleVersions_ToolTip {
-            get {
-                return ResourceManager.GetString("AdvancedChocolateyDialog_AllowMultipleVersions_ToolTip", resourceCulture);
             }
         }
         
@@ -448,6 +430,24 @@ namespace ChocolateyGui.Common.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Ignore HTTP Cache.
+        /// </summary>
+        public static string AdvancedChocolateyDialog_IgnoreHttpCache_Header {
+            get {
+                return ResourceManager.GetString("AdvancedChocolateyDialog_IgnoreHttpCache_Header", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Ignore any HTTP caches that have previously been created when querying sources, and create new caches..
+        /// </summary>
+        public static string AdvancedChocolateyDialog_IgnoreHttpCache_ToolTip {
+            get {
+                return ResourceManager.GetString("AdvancedChocolateyDialog_IgnoreHttpCache_ToolTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Include PreRelease?.
         /// </summary>
         public static string AdvancedChocolateyDialog_IncludePreRelease_Content {
@@ -704,6 +704,15 @@ namespace ChocolateyGui.Common.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Open the known URL to the Gallery in a new browser tab.
+        /// </summary>
+        public static string Application_OperationOpenGallery {
+            get {
+                return ResourceManager.GetString("Application_OperationOpenGallery", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Pin package to currently installed package version.
         /// </summary>
         public static string Application_OperationPin {
@@ -740,7 +749,7 @@ namespace ChocolateyGui.Common.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Update the currently installed package version.
+        ///   Looks up a localized string similar to Upgrade the currently installed package version.
         /// </summary>
         public static string Application_OperationUpgrade {
             get {
@@ -758,7 +767,7 @@ namespace ChocolateyGui.Common.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to There as an error attempting to read the contents of the .arguments file for version {0} of package &apos;{1}&apos;.  See log file for more information..
+        ///   Looks up a localized string similar to There was an error attempting to read the contents of the .arguments file for version {0} of package &apos;{1}&apos;.  See log file for more information..
         /// </summary>
         public static string Application_PackageArgumentsError {
             get {
@@ -956,7 +965,7 @@ namespace ChocolateyGui.Common.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Prevent Usage of Update All Button.
+        ///   Looks up a localized string similar to Prevent Usage of Upgrade All Button.
         /// </summary>
         public static string ChocolateyGUI_PreventUsageOfUpdateAllButtonTitle {
             get {
@@ -988,6 +997,15 @@ namespace ChocolateyGui.Common.Properties {
         public static string ChocolateyGUI_ShowConsoleOutputTitle {
             get {
                 return ResourceManager.GetString("ChocolateyGUI_ShowConsoleOutputTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Skip Modal Dialog Confirmation.
+        /// </summary>
+        public static string ChocolateyGUI_SkipModalDialogConfirmationTitle {
+            get {
+                return ResourceManager.GetString("ChocolateyGUI_SkipModalDialogConfirmationTitle", resourceCulture);
             }
         }
         
@@ -1096,7 +1114,7 @@ namespace ChocolateyGui.Common.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Failed to update package &quot;{0}&quot;.
+        ///   Looks up a localized string similar to Failed to upgrade package &quot;{0}&quot;.
         ///Error: {1}{2}.
         /// </summary>
         public static string ChocolateyRemotePackageService_UpdateFailedMessage {
@@ -1106,7 +1124,7 @@ namespace ChocolateyGui.Common.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Failed to update package..
+        ///   Looks up a localized string similar to Failed to upgrade package..
         /// </summary>
         public static string ChocolateyRemotePackageService_UpdateFailedTitle {
             get {
@@ -1434,7 +1452,16 @@ namespace ChocolateyGui.Common.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Pin (Ignore Updates).
+        ///   Looks up a localized string similar to Open Gallery.
+        /// </summary>
+        public static string Controls_PackagesContextMenuOpenGallery {
+            get {
+                return ResourceManager.GetString("Controls_PackagesContextMenuOpenGallery", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Pin (Ignore Upgrades).
         /// </summary>
         public static string Controls_PackagesContextMenuPin {
             get {
@@ -1470,7 +1497,7 @@ namespace ChocolateyGui.Common.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Update.
+        ///   Looks up a localized string similar to Upgrade.
         /// </summary>
         public static string Controls_PackagesContextMenuUpdate {
             get {
@@ -1497,7 +1524,7 @@ namespace ChocolateyGui.Common.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to This action will delete the file containing the list of outdated packages for this computer.  Are you sure you want to proceed (this action cannot be undone)?.
+        ///   Looks up a localized string similar to This action will delete the files containing the list of outdated packages for this computer.  Are you sure you want to proceed (this action cannot be undone)?.
         /// </summary>
         public static string Dialog_AreYouSureOutdatedPackagesMessage {
             get {
@@ -1821,7 +1848,7 @@ namespace ChocolateyGui.Common.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Update All.
+        ///   Looks up a localized string similar to Upgrade All.
         /// </summary>
         public static string LocalSourceView_ButtonUpdateAll {
             get {
@@ -1830,7 +1857,7 @@ namespace ChocolateyGui.Common.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to No packages need to be updated.
+        ///   Looks up a localized string similar to No packages need to be upgraded.
         /// </summary>
         public static string LocalSourceView_ButtonUpdateAllDisabled {
             get {
@@ -1848,7 +1875,7 @@ namespace ChocolateyGui.Common.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Show Only Packages with Updates.
+        ///   Looks up a localized string similar to Show Only Packages with Upgrades.
         /// </summary>
         public static string LocalSourceView_CheckboxPkgsWithUpdates {
             get {
@@ -1929,15 +1956,6 @@ namespace ChocolateyGui.Common.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Installed Side by Side with another version of the same package..
-        /// </summary>
-        public static string LocalSourceView_ToolTip_InstalledSideBySide {
-            get {
-                return ResourceManager.GetString("LocalSourceView_ToolTip_InstalledSideBySide", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Pinned.
         /// </summary>
         public static string LocalSourceView_ToolTip_Pinned {
@@ -1965,7 +1983,7 @@ namespace ChocolateyGui.Common.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to All the currrently installed packages have been exported to {0}.
+        ///   Looks up a localized string similar to All the currently installed packages have been exported to {0}.
         /// </summary>
         public static string LocalSourceViewModel_ExportComplete {
             get {
@@ -1992,7 +2010,7 @@ namespace ChocolateyGui.Common.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to There&apos;s an update available for Chocolatey..
+        ///   Looks up a localized string similar to There&apos;s an upgrade available for Chocolatey..
         /// </summary>
         public static string LocalSourceViewModel_UpdateAvailableForChocolatey {
             get {
@@ -2055,6 +2073,15 @@ namespace ChocolateyGui.Common.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Available Version.
+        /// </summary>
+        public static string PackageView_AvailableVersion {
+            get {
+                return ResourceManager.GetString("PackageView_AvailableVersion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Install.
         /// </summary>
         public static string PackageView_ButtonInstall {
@@ -2073,7 +2100,7 @@ namespace ChocolateyGui.Common.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Pin (Ignore Updates).
+        ///   Looks up a localized string similar to Pin (Ignore Upgrades).
         /// </summary>
         public static string PackageView_ButtonPin {
             get {
@@ -2109,7 +2136,7 @@ namespace ChocolateyGui.Common.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Update.
+        ///   Looks up a localized string similar to Upgrade.
         /// </summary>
         public static string PackageView_ButtonUpdate {
             get {
@@ -2262,7 +2289,7 @@ namespace ChocolateyGui.Common.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Version.
+        ///   Looks up a localized string similar to Installed Version.
         /// </summary>
         public static string PackageView_Version {
             get {
@@ -2294,6 +2321,15 @@ namespace ChocolateyGui.Common.Properties {
         public static string PackageViewModel_FailedToInstall {
             get {
                 return ResourceManager.GetString("PackageViewModel_FailedToInstall", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to open gallery URL.
+        /// </summary>
+        public static string PackageViewModel_FailedToOpenGallery {
+            get {
+                return ResourceManager.GetString("PackageViewModel_FailedToOpenGallery", resourceCulture);
             }
         }
         
@@ -2334,7 +2370,7 @@ namespace ChocolateyGui.Common.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Failed to Update.
+        ///   Looks up a localized string similar to Failed to Upgrade.
         /// </summary>
         public static string PackageViewModel_FailedToUpdate {
             get {
@@ -2385,6 +2421,16 @@ namespace ChocolateyGui.Common.Properties {
         public static string PackageViewModel_RanIntoInstallError {
             get {
                 return ResourceManager.GetString("PackageViewModel_RanIntoInstallError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unable to open gallery URL {0} for package {1}, version {2}.
+        ///Error: {3}.
+        /// </summary>
+        public static string PackageViewModel_RanIntoOpenGalleryError {
+            get {
+                return ResourceManager.GetString("PackageViewModel_RanIntoOpenGalleryError", resourceCulture);
             }
         }
         
@@ -2633,6 +2679,15 @@ namespace ChocolateyGui.Common.Properties {
         public static string RemoteSourceView_Downloads {
             get {
                 return ResourceManager.GetString("RemoteSourceView_Downloads", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Out of Date.
+        /// </summary>
+        public static string RemoteSourceView_Outdated {
+            get {
+                return ResourceManager.GetString("RemoteSourceView_Outdated", resourceCulture);
             }
         }
         
@@ -3331,7 +3386,7 @@ namespace ChocolateyGui.Common.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Prevents the ability for user to use the Update All button. NOTE: This feature will only work with Chocolatey for Business and the Chocolatey GUI licensed extension installed..
+        ///   Looks up a localized string similar to Prevents the ability for user to use the Upgrade All button. NOTE: This feature will only work with Chocolatey for Business and the Chocolatey GUI licensed extension installed..
         /// </summary>
         public static string SettingsView_TogglePreventUsageOfUpdateAllButtonDescription {
             get {
@@ -3363,6 +3418,15 @@ namespace ChocolateyGui.Common.Properties {
         public static string SettingsView_ToggleShowConsoleOutputDescription {
             get {
                 return ResourceManager.GetString("SettingsView_ToggleShowConsoleOutputDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Skip modal dialog confirmations when performing potentially destructive actions..
+        /// </summary>
+        public static string SettingsView_ToggleSkipModalDialogConfirmationDescription {
+            get {
+                return ResourceManager.GetString("SettingsView_ToggleSkipModalDialogConfirmationDescription", resourceCulture);
             }
         }
         
